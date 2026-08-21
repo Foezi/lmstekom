@@ -1,0 +1,18 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// TODO: definisikan model sesuai blueprint:
+// - users        (id, nama, email, password, role: admin|dosen|mahasiswa)
+// - mahasiswa    (user_id, nim, prodi, angkatan)
+// - dosen        (user_id, nidn)
+// - mata_kuliah  (id, kode, nama, sks, semester, tahun_ajaran, dosen_id)
+// - enrollments  (id, mahasiswa_id, mata_kuliah_id)
+// - tugas        (id, mata_kuliah_id, judul, deskripsi, file_soal, deadline)
+// - submissions  (id, tugas_id, mahasiswa_id, file_path, catatan,
+//                 submitted_at, is_late, nilai, feedback, graded_at)
