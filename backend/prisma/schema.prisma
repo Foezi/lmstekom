@@ -7,12 +7,205 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// TODO: definisikan model sesuai blueprint:
-// - users        (id, nama, email, password, role: admin|dosen|mahasiswa)
-// - mahasiswa    (user_id, nim, prodi, angkatan)
-// - dosen        (user_id, nidn)
-// - mata_kuliah  (id, kode, nama, sks, semester, tahun_ajaran, dosen_id)
-// - enrollments  (id, mahasiswa_id, mata_kuliah_id)
-// - tugas        (id, mata_kuliah_id, judul, deskripsi, file_soal, deadline)
-// - submissions  (id, tugas_id, mahasiswa_id, file_path, catatan,
-//                 submitted_at, is_late, nilai, feedback, graded_at)
+// ===================== ENUM =====================
+
+enum Role {
+  ADMIN
+  ADMIN_AKADEMIK
+  ADMIN_PRODI
+  DOSEN
+  MAHASISWA
+}
+
+enum StatusAktif {
+  AKTIF
+  NONAKTIF
+}
+
+enum VerifikasiStatus {
+  BELUM
+  TERVERIFIKASI
+}
+
+enum OtpJenis {
+  EMAIL
+  WHATSAPP
+}
+
+enum OtpStatus {
+  PENDING
+  BERHASIL
+  GAGAL
+}
+
+enum ImportStatus {
+  SUKSES
+  SEBAGIAN
+  GAGAL
+}
+
+// ===================== SISTEM & LOG =====================
+
+model User {
+  id                    Int              @id @default(autoincrement())
+  username              String           @unique
+  password              String
+  role                  Role
+  dosenId               Int?  @unique
+  mahasiswaId           Int?  @unique
+  prodiId               Int?
+  dosen                 Dosen?           @relation(fields: [dosenId], references: [id], onDelete: Cascade)
+  mahasiswa             Mahasiswa?       @relation(fields: [mahasiswaId], references: [id], onDelete: Cascade)
+  prodiKelola           Prodi?           @relation("AdminProdiProdi", fields: [prodiId], references: [id], onDelete: SetNull)
+  emailAktif            String?
+  noWhatsapp            String?
+  statusVerifikasiEmail VerifikasiStatus @default(BELUM)
+  statusVerifikasiWa    VerifikasiStatus @default(BELUM)
+  googleDriveConnected  Boolean          @default(false)
+  wajibLengkapiProfil   Boolean          @default(true)
+  firstLoginAt          DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+
+  otpList      VerifikasiOtp[]
+  activityLogs ActivityLog[]
+  importLogs   ImportLog[]
+
+  @@index([role])
+}
+
+model VerifikasiOtp {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jenis          OtpJenis
+  kodeOtp        String
+  dikirimPada    DateTime  @default(now())
+  kadaluarsaPada DateTime
+  status         OtpStatus @default(PENDING)
+
+  @@index([userId, jenis])
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    Int?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  aktivitas String
+  modul     String
+  waktu     DateTime @default(now())
+  ipAddress String?
+
+  @@index([waktu])
+  @@index([modul])
+}
+
+model ImportLog {
+  id           Int          @id @default(autoincrement())
+  userId       Int
+  user         User         @relation(fields: [userId], references: [id])
+  jenisData    String
+  jumlahBaris  Int
+  status       ImportStatus
+  catatanError Json?
+  waktu        DateTime     @default(now())
+
+  @@index([waktu])
+}
+
+// ===================== MASTER DATA =====================
+
+model Prodi {
+  id           Int      @id @default(autoincrement())
+  kodeProdi    String   @unique
+  namaProdi    String
+  jenjang      String
+  ketuaProdiId Int?
+  ketuaProdi   Dosen?   @relation("KetuaProdi", fields: [ketuaProdiId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  kelas      Kelas[]
+  matakuliah MataKuliah[]
+  mahasiswa  Mahasiswa[]
+  dosen      Dosen[]
+  adminProdi User[]       @relation("AdminProdiProdi")
+}
+
+model Kelas {
+  id               Int      @id @default(autoincrement())
+  prodiId          Int
+  prodi            Prodi    @relation(fields: [prodiId], references: [id])
+  namaKelas        String
+  angkatan         Int
+  semesterBerjalan Int      @default(1)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  mahasiswa Mahasiswa[]
+
+  @@unique([prodiId, namaKelas])
+  @@index([prodiId])
+}
+
+model Dosen {
+  id        Int         @id @default(autoincrement())
+  nidn      String      @unique
+  nama      String
+  email     String?
+  noHp      String?
+  status    StatusAktif @default(AKTIF)
+  prodiId   Int?
+  prodi     Prodi?      @relation(fields: [prodiId], references: [id])
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user          User?
+  prodiDiketuai Prodi[] @relation("KetuaProdi")
+
+  @@index([prodiId])
+}
+
+model Mahasiswa {
+  id        Int         @id @default(autoincrement())
+  nim       String      @unique
+  nama      String
+  kelasId   Int
+  kelas     Kelas       @relation(fields: [kelasId], references: [id])
+  prodiId   Int
+  prodi     Prodi       @relation(fields: [prodiId], references: [id])
+  email     String?
+  status    StatusAktif @default(AKTIF)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user User?
+
+  @@index([kelasId])
+  @@index([prodiId])
+}
+
+model Ruangan {
+  id          Int      @id @default(autoincrement())
+  kodeRuangan String   @unique
+  namaRuangan String
+  kapasitas   Int
+  gedung      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model MataKuliah {
+  id      Int      @id @default(autoincrement())
+  prodiId Int
+  prodi   Prodi    @relation(fields: [prodiId], references: [id])
+  kodeMk  String
+  namaMk  String
+  sks     Int
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([prodiId, kodeMk])
+  @@index([prodiId])
+}

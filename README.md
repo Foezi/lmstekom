@@ -1,72 +1,73 @@
-# SimTugas — LMS Pemantauan Pengumpulan Tugas Kuliah
+# SimTugas — LMS Politeknik Sukabumi
 
-Aplikasi LMS untuk memantau pengumpulan tugas kuliah mahasiswa dengan deteksi keterlambatan otomatis, grading, dan rekap pengumpulan per kelas.
+Implementasi blueprint LMS Politeknik Sukabumi (lihat `docs/`). Saat ini **Fase 1 selesai**: autentikasi & verifikasi akun, RBAC 5 peran, data master + import/export Excel.
 
 ## Teknologi
 
 | Layer | Teknologi |
 |-------|-----------|
-| Backend | Express.js (JavaScript) + Prisma ORM |
-| Database | PostgreSQL 16 (Docker) |
-| Auth | JWT (jsonwebtoken + bcrypt) + role-based access |
-| Frontend | React + Vite + TailwindCSS |
+| Backend | Express.js (ESM) + Prisma ORM |
+| Database | PostgreSQL (lokal) |
+| Auth | JWT + bcrypt, gate profil wajib, OTP stub |
+| Frontend | React 19 + Vite + TailwindCSS v4 |
+| Import/Export | SheetJS (xlsx) |
 
-## Role Pengguna
+## Status Fase
 
-- **Admin** — kelola user, mata kuliah, kelas
-- **Dosen** — buat tugas & deadline, pantau pengumpulan, beri nilai & feedback
-- **Mahasiswa** — submit tugas, lihat status (tepat waktu/terlambat), lihat nilai
+| Fase | Cakupan | Status |
+|---|---|---|
+| **1** | **Auth + onboarding, Master Data 6 entitas, Import Excel idempoten, Export, Audit log** | ✅ **Selesai** |
+| 2 | Jadwal + validasi bentrok + import jadwal | ⬜ |
+| 3 | Generate mengajar + 16 pertemuan otomatis | ⬜ |
+| 4 | Materi, tugas, kuis (lockdown PG), nilai | ⬜ |
+| 5 | Monitoring admin prodi/akademik | ⬜ |
 
-## Struktur Projek
+## Role & Akun Demo (seed)
 
-```
-lms-simtugas/
-├── docs/                   # Blueprint & dokumentasi desain
-├── backend/                # REST API (Express + Prisma)
-│   ├── prisma/             # Schema database PostgreSQL
-│   └── src/
-│       ├── config/         # Konfigurasi (db, env)
-│       ├── middlewares/    # auth, role, validasi, error handler
-│       ├── routes/
-│       ├── controllers/
-│       ├── services/       # Business logic
-│       └── utils/
-└── frontend/               # SPA (React + Vite + Tailwind)
-    └── src/
-        ├── api/            # Axios instance & endpoint client
-        ├── components/
-        ├── context/        # AuthContext
-        └── pages/
-```
+| Username | Password | Peran |
+|---|---|---|
+| `superadmin` | `admin123` | Administrator |
+| `adminti` | `prodi123` | Admin Prodi D4-TI |
+| `0012345601`, `0012345602` | `<NIDN>@poltek` | Dosen (password default) |
+| `2204001`, `2204002`, `2404003` | `<NIM>@poltek` | Mahasiswa (password default) |
 
-## Cara Menjalankan
+Login pertama kali dosen/mahasiswa: password default → wajib lengkapi profil (email Gmail + WA + password baru) → verifikasi OTP email & WhatsApp (**stub**: kode tampil di console backend & respons API saat `OTP_DEV_MODE=true`) → hubungkan Google Drive (stub).
 
-### 1. Database
+## Menjalankan
 
 ```bash
-docker compose up -d
+# database — sesuaikan .env dengan PostgreSQL lokal Anda
+cd backend && cp .env.example .env
+npx prisma migrate dev   # bila belum ada migrasi
+npm run db:seed
+npm run dev              # API di :3000
+
+cd frontend && npm install
+npm run dev              # web di :5173 (proxy /api -> :3000)
 ```
 
-PostgreSQL berjalan di `localhost:5432` (user: `lms_user`, password: `lms_password`, db: `lms_simtugas`).
+## Struktur Backend
 
-### 2. Backend
-
-```bash
-cd backend
-cp .env.example .env
-npm install
-npx prisma migrate dev
-npm run dev
+```
+backend/src/
+├── config/          env, Prisma client
+├── middlewares/     authenticate (+gate profil), requireRole, validate(zod), errorHandler
+├── services/        authService, crudFactory + masterConfigs (6 entitas), notificationStub
+├── controllers/     authController, crudController (generik)
+├── routes/          auth, profile (/me), master (factory), logs
+└── utils/           jwt, password, otp, excel, pagination, activityLog, importBatchStore
 ```
 
-API berjalan di `http://localhost:3000`.
+### Endpoint utama
 
-### 3. Frontend
+- `POST /api/auth/login` · `/lengkapi-profil` · `/verify-otp` · `/resend-otp` · `/drive/connect` · `GET /auth/me`
+- `/api/prodi` · `/kelas` · `/dosen` · `/mahasiswa` · `/ruangan` · `/mata-kuliah`
+  - CRUD + `GET /import/template` + `POST /import/preview|commit` + `GET /export`
+- `GET /api/dosen/me`, `PUT /api/dosen/me`, `GET /api/mahasiswa/me` (profil sendiri)
+- `GET /api/logs/activity`, `GET /api/logs/import` (admin)
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+Hak akses tiap modul mengikuti matriks RBAC blueprint §3.1; scoping Admin Prodi otomatis via relasi prodi.
 
-Frontend berjalan di `http://localhost:5173`.
+## Catatan Integrasi (stub)
+
+`services/notificationStub.js` menyediakan interface email/WA OTP dan Google Drive OAuth2. Fase integrasi nyata cukup mengganti implementasi stub tanpa mengubah service layer.

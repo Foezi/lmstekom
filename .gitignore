@@ -25,3 +25,6 @@ Thumbs.db
 # Editor
 .idea/
 *.swp
+
+# Documentation / Local Blueprint
+blueprint-lms-polikami.md
