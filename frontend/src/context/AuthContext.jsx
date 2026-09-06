@@ -33,6 +33,8 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (username, password) => {
     const result = await loginRequest({ username, password });
+    localStorage.setItem(TOKEN_KEY, result.token);
+    localStorage.setItem(USER_KEY, JSON.stringify(result.user));
     setUser(result.user);
     setToken(result.token);
     return result.user;

@@ -1,0 +1,783 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table User {
+  id Int [pk, increment]
+  username String [unique, not null]
+  password String [not null]
+  role Role [not null]
+  dosenId Int [unique]
+  mahasiswaId Int [unique]
+  prodiId Int
+  dosen Dosen
+  mahasiswa Mahasiswa
+  prodiKelola Prodi
+  nickname String
+  avatarUrl String
+  emailAktif String
+  noWhatsapp String
+  statusVerifikasiEmail VerifikasiStatus [not null, default: 'BELUM']
+  statusVerifikasiWa VerifikasiStatus [not null, default: 'BELUM']
+  googleDriveConnected Boolean [not null, default: false]
+  googleAccessToken String
+  googleRefreshToken String
+  googleTokenExpiry DateTime
+  wajibLengkapiProfil Boolean [not null, default: true]
+  firstLoginAt DateTime
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  otpList VerifikasiOtp [not null]
+  activityLogs ActivityLog [not null]
+  importLogs ImportLog [not null]
+  waLogs NotifikasiWaLog [not null]
+  diskusis Diskusi [not null]
+  chatMembers ChatMember [not null]
+  chatMessages ChatMessage [not null]
+}
+
+Table VerifikasiOtp {
+  id Int [pk, increment]
+  userId Int [not null]
+  user User [not null]
+  jenis OtpJenis [not null]
+  kodeOtp String [not null]
+  dikirimPada DateTime [default: `now()`, not null]
+  kadaluarsaPada DateTime [not null]
+  status OtpStatus [not null, default: 'PENDING']
+}
+
+Table ActivityLog {
+  id Int [pk, increment]
+  userId Int
+  user User
+  aktivitas String [not null]
+  modul String [not null]
+  waktu DateTime [default: `now()`, not null]
+  ipAddress String
+}
+
+Table ImportLog {
+  id Int [pk, increment]
+  userId Int [not null]
+  user User [not null]
+  jenisData String [not null]
+  jumlahBaris Int [not null]
+  status ImportStatus [not null]
+  catatanError Json
+  waktu DateTime [default: `now()`, not null]
+}
+
+Table TahunAkademik {
+  id Int [pk, increment]
+  kode String [unique, not null]
+  nama String [not null]
+  status StatusAkademik [not null, default: 'NONAKTIF']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  jadwals Jadwal [not null]
+  mengajars Mengajar [not null]
+  riwayatStatusMhs RiwayatStatusMahasiswa [not null]
+  kalenderAkademik KalenderAkademik [not null]
+}
+
+Table KalenderAkademik {
+  id Int [pk, increment]
+  tahunAkademikId Int [not null]
+  tahunAkademik TahunAkademik [not null]
+  namaKegiatan String [not null]
+  jenisKegiatan JenisKegiatanAkademik [not null, default: 'LAINNYA']
+  tanggalMulai DateTime [not null]
+  tanggalSelesai DateTime [not null]
+  keterangan String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table SesiWaktu {
+  id Int [pk, increment]
+  kodeSesi String [unique, not null]
+  jamMulai String [not null]
+  jamSelesai String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table Prodi {
+  id Int [pk, increment]
+  kodeProdi String [unique, not null]
+  namaProdi String [not null]
+  jenjang String [not null]
+  ketuaProdiId Int
+  ketuaProdi Dosen
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  kelas Kelas [not null]
+  matakuliah MataKuliah [not null]
+  mahasiswa Mahasiswa [not null]
+  dosen Dosen [not null]
+  adminProdi User [not null]
+  tahunKurikulum TahunKurikulum [not null]
+}
+
+Table Kelas {
+  id Int [pk, increment]
+  prodiId Int [not null]
+  prodi Prodi [not null]
+  namaKelas String [not null]
+  angkatan Int [not null]
+  tahunKurikulumId Int
+  tahunKurikulum TahunKurikulum
+  semesterBerjalan Int [not null, default: 1]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  mahasiswa Mahasiswa [not null]
+  jadwals Jadwal [not null]
+  mengajars Mengajar [not null]
+
+  indexes {
+    (prodiId, namaKelas) [unique]
+  }
+}
+
+Table Dosen {
+  id Int [pk, increment]
+  nidn String [unique, not null]
+  nama String [not null]
+  email String
+  noHp String
+  status StatusAktif [not null, default: 'AKTIF']
+  prodiId Int
+  prodi Prodi
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User
+  prodiDiketuai Prodi [not null]
+  jadwals Jadwal [not null]
+  mengajars Mengajar [not null]
+  mahasiswaBimbingan Mahasiswa [not null]
+}
+
+Table Mahasiswa {
+  id Int [pk, increment]
+  nim String [unique, not null]
+  nama String [not null]
+  kelasId Int [not null]
+  kelas Kelas [not null]
+  prodiId Int [not null]
+  prodi Prodi [not null]
+  email String
+  jenisKelamin JenisKelamin
+  tempatLahir String
+  tanggalLahir DateTime
+  periodeMasuk String
+  jalurPendaftaran String
+  status StatusMahasiswa [not null, default: 'AKTIF']
+  dosenWaliId Int
+  dosenWali Dosen
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  user User
+  tugasSubmissions TugasSubmission [not null]
+  kuisJawabans KuisJawaban [not null]
+  kuisAttempts KuisAttempt [not null]
+  nilaiAkhirs NilaiAkhir [not null]
+  presensis Presensi [not null]
+  riwayatStatus RiwayatStatusMahasiswa [not null]
+}
+
+Table RiwayatStatusMahasiswa {
+  id Int [pk, increment]
+  mahasiswaId Int [not null]
+  mahasiswa Mahasiswa [not null]
+  tahunAkademikId Int [not null]
+  tahunAkademik TahunAkademik [not null]
+  status StatusMahasiswa [not null]
+  keterangan String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+
+  indexes {
+    (mahasiswaId, tahunAkademikId) [unique]
+  }
+}
+
+Table Ruangan {
+  id Int [pk, increment]
+  kodeRuangan String [unique, not null]
+  namaRuangan String [not null]
+  kapasitas Int [not null]
+  gedung String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  jadwals Jadwal [not null]
+}
+
+Table TahunKurikulum {
+  id Int [pk, increment]
+  prodiId Int [not null]
+  prodi Prodi [not null]
+  tahun Int [not null]
+  statusAktif StatusAktif [not null, default: 'AKTIF']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  mataKuliah MataKuliah [not null]
+  kelas Kelas [not null]
+  jadwals Jadwal [not null]
+
+  indexes {
+    (prodiId, tahun) [unique]
+  }
+}
+
+Table MataKuliah {
+  id Int [pk, increment]
+  prodiId Int [not null]
+  prodi Prodi [not null]
+  tahunKurikulumId Int
+  tahunKurikulum TahunKurikulum
+  kodeMk String [not null]
+  namaMk String [not null]
+  sks Int [not null]
+  semester Int [not null, default: 1]
+  sifat SifatMk [not null, default: 'WAJIB']
+  prasyaratId Int
+  prasyarat MataKuliah
+  menjadiSyarat MataKuliah [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  jadwals Jadwal [not null]
+  mengajars Mengajar [not null]
+
+  indexes {
+    (prodiId, kodeMk) [unique]
+  }
+}
+
+Table Jadwal {
+  id Int [pk, increment]
+  matakuliahId Int [not null]
+  matakuliah MataKuliah [not null]
+  kelasId Int [not null]
+  kelas Kelas [not null]
+  dosenId Int [not null]
+  dosen Dosen [not null]
+  ruanganId Int
+  ruangan Ruangan
+  metode String [not null, default: 'OFFLINE']
+  hari String [not null]
+  jamMulai String [not null, default: '08:00']
+  jamSelesai String [not null, default: '10:00']
+  semester Int [not null]
+  tahunAkademikId Int [not null]
+  tahunAkademik TahunAkademik [not null]
+  tahunKurikulumId Int
+  tahunKurikulum TahunKurikulum
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  mengajar Mengajar
+}
+
+Table Mengajar {
+  id Int [pk, increment]
+  jadwalId Int [unique, not null]
+  jadwal Jadwal [not null]
+  dosenId Int [not null]
+  dosen Dosen [not null]
+  matakuliahId Int [not null]
+  matakuliah MataKuliah [not null]
+  kelasId Int [not null]
+  kelas Kelas [not null]
+  semester Int [not null]
+  tahunAkademikId Int [not null]
+  tahunAkademik TahunAkademik [not null]
+  totalPertemuan Int [not null, default: 16]
+  deskripsiMk String
+  bobotKehadiran Float [not null, default: 10]
+  bobotTugas Float [not null, default: 20]
+  bobotUts Float [not null, default: 30]
+  bobotUas Float [not null, default: 40]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  pertemuan Pertemuan [not null]
+  nilaiAkhir NilaiAkhir [not null]
+}
+
+Table Pertemuan {
+  id Int [pk, increment]
+  mengajarId Int [not null]
+  mengajar Mengajar [not null]
+  keBerapa Int [not null]
+  tanggal DateTime
+  waktuMulai String
+  waktuSelesai String
+  jenisPertemuan String [default: 'Kuliah']
+  kelompok String
+  metodePembelajaran String [default: 'Luring']
+  ruangKuliah String
+  keteranganRuang String
+  urlKuliahOnline String
+  rencanaMateri String
+  realisasiMateri String
+  status StatusPertemuan [not null, default: 'BELUM']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  materi Materi [not null]
+  tugas Tugas [not null]
+  kuis Kuis [not null]
+  presensis Presensi [not null]
+  diskusis Diskusi [not null]
+
+  indexes {
+    (mengajarId, keBerapa) [unique]
+  }
+}
+
+Table Materi {
+  id Int [pk, increment]
+  pertemuanId Int [not null]
+  pertemuan Pertemuan [not null]
+  judul String [not null]
+  deskripsi String
+  jenis JenisMateri [not null]
+  urlAtauLink String
+  gdriveFileId String
+  gdriveOwnerUserId Int
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  diskusis Diskusi [not null]
+}
+
+Table Tugas {
+  id Int [pk, increment]
+  pertemuanId Int [not null]
+  pertemuan Pertemuan [not null]
+  judul String [not null]
+  kategori String
+  deskripsi String
+  gdriveFileIdLampiran String
+  gdriveOwnerUserId Int
+  tanggalBuka DateTime [not null]
+  tanggalTutup DateTime [not null]
+  status StatusTugas [not null, default: 'OPEN']
+  bobotNilai Float [not null, default: 100]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  submissions TugasSubmission [not null]
+  diskusis Diskusi [not null]
+}
+
+Table TugasSubmission {
+  id Int [pk, increment]
+  tugasId Int [not null]
+  tugas Tugas [not null]
+  mahasiswaId Int [not null]
+  mahasiswa Mahasiswa [not null]
+  gdriveFileIdJawaban String
+  gdriveLink String
+  waktuSubmit DateTime [default: `now()`, not null]
+  nilai Float
+  catatanDosen String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+
+  indexes {
+    (tugasId, mahasiswaId) [unique]
+  }
+}
+
+Table Kuis {
+  id Int [pk, increment]
+  pertemuanId Int [not null]
+  pertemuan Pertemuan [not null]
+  judul String [not null]
+  jenis JenisKuis [not null]
+  deskripsi String
+  bobotNilai Float [not null, default: 100]
+  waktuMulai DateTime [not null]
+  waktuSelesai DateTime [not null]
+  durasiMenit Int [not null]
+  modeLockdown Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  soal KuisSoal [not null]
+  attempts KuisAttempt [not null]
+  jawaban KuisJawaban [not null]
+}
+
+Table KuisSoal {
+  id Int [pk, increment]
+  kuisId Int [not null]
+  kuis Kuis [not null]
+  tipeSoal TipeSoal [not null]
+  pertanyaan String [not null]
+  pilihanJawaban Json
+  kunciJawaban String
+  bobotSoal Float [not null, default: 10]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  jawabanMahasiswa KuisJawaban [not null]
+}
+
+Table KuisJawaban {
+  id Int [pk, increment]
+  kuisId Int [not null]
+  kuis Kuis [not null]
+  mahasiswaId Int [not null]
+  mahasiswa Mahasiswa [not null]
+  soalId Int [not null]
+  soal KuisSoal [not null]
+  jawaban String
+  nilaiSoal Float
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+
+  indexes {
+    (kuisId, mahasiswaId, soalId) [unique]
+  }
+}
+
+Table KuisAttempt {
+  id Int [pk, increment]
+  kuisId Int [not null]
+  kuis Kuis [not null]
+  mahasiswaId Int [not null]
+  mahasiswa Mahasiswa [not null]
+  waktuMulai DateTime [default: `now()`, not null]
+  waktuSelesai DateTime
+  status StatusAttempt [not null, default: 'SEDANG_MENGERJAKAN']
+  alasanDitutupPaksa String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+
+  indexes {
+    (kuisId, mahasiswaId) [unique]
+  }
+}
+
+Table NilaiAkhir {
+  id Int [pk, increment]
+  mengajarId Int [not null]
+  mengajar Mengajar [not null]
+  mahasiswaId Int [not null]
+  mahasiswa Mahasiswa [not null]
+  nilaiTugas Float
+  nilaiKuis Float
+  nilaiUts Float
+  nilaiUas Float
+  nilaiAkhir Float
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+
+  indexes {
+    (mengajarId, mahasiswaId) [unique]
+  }
+}
+
+Table NotifikasiWaLog {
+  id Int [pk, increment]
+  userId Int [not null]
+  user User [not null]
+  jenisNotifikasi String [not null]
+  pesan String [not null]
+  statusKirim String [not null]
+  waktuKirim DateTime [default: `now()`, not null]
+}
+
+Table Presensi {
+  id Int [pk, increment]
+  pertemuanId Int [not null]
+  pertemuan Pertemuan [not null]
+  mahasiswaId Int [not null]
+  mahasiswa Mahasiswa [not null]
+  status StatusKehadiran [not null, default: 'ALPA']
+  waktu DateTime [default: `now()`, not null]
+
+  indexes {
+    (pertemuanId, mahasiswaId) [unique]
+  }
+}
+
+Table Diskusi {
+  id Int [pk, increment]
+  pertemuanId Int [not null]
+  pertemuan Pertemuan [not null]
+  userId Int [not null]
+  user User [not null]
+  materiId Int
+  materi Materi
+  tugasId Int
+  tugas Tugas
+  isiPesan String [not null]
+  parentId Int
+  parent Diskusi
+  replies Diskusi [not null]
+  waktu DateTime [default: `now()`, not null]
+}
+
+Table ChatRoom {
+  id Int [pk, increment]
+  type ChatRoomType [not null, default: 'PERSONAL']
+  name String
+  createdBy Int
+  createdAt DateTime [default: `now()`, not null]
+  members ChatMember [not null]
+  messages ChatMessage [not null]
+}
+
+Table ChatMember {
+  id Int [pk, increment]
+  roomId Int [not null]
+  room ChatRoom [not null]
+  userId Int [not null]
+  user User [not null]
+  role ChatMemberRole [not null, default: 'MEMBER']
+  joinedAt DateTime [default: `now()`, not null]
+
+  indexes {
+    (roomId, userId) [unique]
+  }
+}
+
+Table ChatMessage {
+  id Int [pk, increment]
+  roomId Int [not null]
+  room ChatRoom [not null]
+  senderId Int [not null]
+  sender User [not null]
+  message String [not null]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Enum Role {
+  ADMIN
+  ADMIN_AKADEMIK
+  ADMIN_PRODI
+  DOSEN
+  MAHASISWA
+}
+
+Enum StatusAktif {
+  AKTIF
+  NONAKTIF
+}
+
+Enum SifatMk {
+  WAJIB
+  PILIHAN
+}
+
+Enum StatusAkademik {
+  AKTIF
+  NONAKTIF
+}
+
+Enum JenisKegiatanAkademik {
+  AWAL_KULIAH
+  UTS
+  UAS
+  LIBUR
+  LAINNYA
+}
+
+Enum StatusMahasiswa {
+  AKTIF
+  NONAKTIF
+  LULUS
+  DO
+  MENGUNDURKAN_DIRI
+  CUTI
+}
+
+Enum JenisKelamin {
+  L
+  P
+}
+
+Enum VerifikasiStatus {
+  BELUM
+  TERVERIFIKASI
+}
+
+Enum OtpJenis {
+  EMAIL
+  WHATSAPP
+}
+
+Enum OtpStatus {
+  PENDING
+  BERHASIL
+  GAGAL
+}
+
+Enum ImportStatus {
+  SUKSES
+  SEBAGIAN
+  GAGAL
+}
+
+Enum StatusPertemuan {
+  BELUM
+  MULAI
+  SELESAI
+  TERLAKSANA
+}
+
+Enum JenisMateri {
+  DOKUMEN
+  LINK
+  VIDEO
+}
+
+Enum StatusTugas {
+  OPEN
+  CLOSE
+}
+
+Enum JenisKuis {
+  PILIHAN_GANDA
+  ESSAY
+}
+
+Enum TipeSoal {
+  PG
+  ESSAY
+}
+
+Enum StatusAttempt {
+  SEDANG_MENGERJAKAN
+  SELESAI
+  DITUTUP_PAKSA
+}
+
+Enum StatusKehadiran {
+  HADIR
+  SAKIT
+  IZIN
+  ALPA
+}
+
+Enum ChatRoomType {
+  PERSONAL
+  GROUP
+  CLASS
+}
+
+Enum ChatMemberRole {
+  MEMBER
+  ADMIN
+}
+
+Ref: User.dosenId - Dosen.id [delete: Cascade]
+
+Ref: User.mahasiswaId - Mahasiswa.id [delete: Cascade]
+
+Ref: User.prodiId > Prodi.id [delete: Set Null]
+
+Ref: VerifikasiOtp.userId > User.id [delete: Cascade]
+
+Ref: ActivityLog.userId > User.id [delete: Set Null]
+
+Ref: ImportLog.userId > User.id
+
+Ref: KalenderAkademik.tahunAkademikId > TahunAkademik.id [delete: Cascade]
+
+Ref: Prodi.ketuaProdiId - Dosen.id
+
+Ref: Kelas.prodiId > Prodi.id
+
+Ref: Kelas.tahunKurikulumId > TahunKurikulum.id
+
+Ref: Dosen.prodiId - Prodi.id
+
+Ref: Mahasiswa.kelasId > Kelas.id
+
+Ref: Mahasiswa.prodiId > Prodi.id
+
+Ref: Mahasiswa.dosenWaliId > Dosen.id
+
+Ref: RiwayatStatusMahasiswa.mahasiswaId > Mahasiswa.id [delete: Cascade]
+
+Ref: RiwayatStatusMahasiswa.tahunAkademikId > TahunAkademik.id
+
+Ref: TahunKurikulum.prodiId > Prodi.id
+
+Ref: MataKuliah.prodiId > Prodi.id
+
+Ref: MataKuliah.tahunKurikulumId > TahunKurikulum.id
+
+Ref: MataKuliah.prasyaratId - MataKuliah.id
+
+Ref: Jadwal.matakuliahId > MataKuliah.id
+
+Ref: Jadwal.kelasId > Kelas.id
+
+Ref: Jadwal.dosenId > Dosen.id
+
+Ref: Jadwal.ruanganId > Ruangan.id
+
+Ref: Jadwal.tahunAkademikId > TahunAkademik.id
+
+Ref: Jadwal.tahunKurikulumId > TahunKurikulum.id
+
+Ref: Mengajar.jadwalId - Jadwal.id [delete: Cascade]
+
+Ref: Mengajar.dosenId > Dosen.id
+
+Ref: Mengajar.matakuliahId > MataKuliah.id
+
+Ref: Mengajar.kelasId > Kelas.id
+
+Ref: Mengajar.tahunAkademikId > TahunAkademik.id
+
+Ref: Pertemuan.mengajarId > Mengajar.id [delete: Cascade]
+
+Ref: Materi.pertemuanId > Pertemuan.id [delete: Cascade]
+
+Ref: Tugas.pertemuanId > Pertemuan.id [delete: Cascade]
+
+Ref: TugasSubmission.tugasId > Tugas.id [delete: Cascade]
+
+Ref: TugasSubmission.mahasiswaId > Mahasiswa.id [delete: Cascade]
+
+Ref: Kuis.pertemuanId > Pertemuan.id [delete: Cascade]
+
+Ref: KuisSoal.kuisId > Kuis.id [delete: Cascade]
+
+Ref: KuisJawaban.kuisId > Kuis.id [delete: Cascade]
+
+Ref: KuisJawaban.mahasiswaId > Mahasiswa.id [delete: Cascade]
+
+Ref: KuisJawaban.soalId > KuisSoal.id [delete: Cascade]
+
+Ref: KuisAttempt.kuisId > Kuis.id [delete: Cascade]
+
+Ref: KuisAttempt.mahasiswaId > Mahasiswa.id [delete: Cascade]
+
+Ref: NilaiAkhir.mengajarId > Mengajar.id [delete: Cascade]
+
+Ref: NilaiAkhir.mahasiswaId > Mahasiswa.id [delete: Cascade]
+
+Ref: NotifikasiWaLog.userId > User.id [delete: Cascade]
+
+Ref: Presensi.pertemuanId > Pertemuan.id [delete: Cascade]
+
+Ref: Presensi.mahasiswaId > Mahasiswa.id [delete: Cascade]
+
+Ref: Diskusi.pertemuanId > Pertemuan.id [delete: Cascade]
+
+Ref: Diskusi.userId > User.id [delete: Cascade]
+
+Ref: Diskusi.materiId > Materi.id [delete: Set Null]
+
+Ref: Diskusi.tugasId > Tugas.id [delete: Set Null]
+
+Ref: Diskusi.parentId - Diskusi.id [delete: Set Null]
+
+Ref: ChatMember.roomId > ChatRoom.id [delete: Cascade]
+
+Ref: ChatMember.userId > User.id [delete: Cascade]
+
+Ref: ChatMessage.roomId > ChatRoom.id [delete: Cascade]
+
+Ref: ChatMessage.senderId > User.id [delete: Cascade]

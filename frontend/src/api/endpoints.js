@@ -9,6 +9,7 @@ export const lengkapiProfil = async (payload) => unwrap(await api.post('/auth/le
 export const verifyOtp = async ({ jenis, kode }) => unwrap(await api.post('/auth/verify-otp', { jenis, kode }));
 export const resendOtp = async (jenis) => unwrap(await api.post('/auth/resend-otp', { jenis }));
 export const connectDrive = async () => unwrap(await api.post('/auth/drive/connect'));
+export const updateProfile = async (formData) => unwrap(await api.put('/auth/profile', formData, { headers: { 'Content-Type': 'multipart/form-data' } }));
 export const changePassword = async (payload) => unwrap(await api.put('/auth/password', payload));
 
 // ---------------- MASTER DATA ----------------
@@ -25,6 +26,7 @@ export function masterApi(entity) {
       const res = await api.get(`/${entity}`, { params: listParams(params) });
       return { rows: res.data.data, meta: res.data.meta };
     },
+    get: async (id) => unwrap(await api.get(`/${entity}/${id}`)),
     create: async (body) => unwrap(await api.post(`/${entity}`, body)),
     update: async (id, body) => unwrap(await api.put(`/${entity}/${id}`, body)),
     remove: async (id) => unwrap(await api.delete(`/${entity}/${id}`)),
@@ -56,6 +58,12 @@ export const getDosenMe = async () => unwrap(await api.get('/dosen/me'));
 export const updateDosenMe = async (body) => unwrap(await api.put('/dosen/me', body));
 export const getMahasiswaMe = async () => unwrap(await api.get('/mahasiswa/me'));
 export const updateMahasiswaMe = async (body) => unwrap(await api.put('/mahasiswa/me', body));
+
+// ---------------- PERKULIAHAN ----------------
+export const getRekapNilaiAdmin = async (params) => unwrap(await api.get('/nilai/admin/rekap', { params }));
+
+// ---------------- DASHBOARD ----------------
+export const getDashboardData = async () => unwrap(await api.get('/dashboard'));
 
 // ---------------- LOGS ----------------
 export const activityLogApi = {

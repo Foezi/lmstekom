@@ -56,7 +56,7 @@ export default function LengkapiProfil() {
     setError(null);
     try {
       const result = await resendOtp(jenis);
-      setDevCodes((prev) => ({ ...prev, ...(result.devCodes ?? {}) }));
+      setDevCodes((prev) => result.devCodes ? { ...prev, ...result.devCodes } : null);
       setInfo('OTP baru dikirim.');
     } catch (err) {
       setError(apiError(err));

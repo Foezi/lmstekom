@@ -2,9 +2,9 @@ export function Button({ variant = 'primary', className = '', ...props }) {
   const base =
     'inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed';
   const variants = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
+    primary: 'bg-sky-500 text-white hover:bg-sky-600 shadow-sm',
     secondary: 'bg-slate-100 text-slate-700 hover:bg-slate-200',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
+    danger: 'bg-red-500 text-white hover:bg-red-600 shadow-sm',
     ghost: 'text-slate-600 hover:bg-slate-100',
   };
   return <button className={`${base} ${variants[variant]} ${className}`} {...props} />;
@@ -13,9 +13,14 @@ export function Button({ variant = 'primary', className = '', ...props }) {
 export function Input({ label, error, className = '', ...props }) {
   return (
     <label className="block">
-      {label && <span className="mb-1 block text-sm font-medium text-slate-700">{label}</span>}
+      {label && (
+        <span className="mb-1 block text-sm font-medium text-slate-700">
+          {label}
+          {props.required && <span className="text-red-500 ml-1">*</span>}
+        </span>
+      )}
       <input
-        className={`w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${error ? 'border-red-400' : ''} ${className}`}
+        className={`w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all ${error ? 'border-red-400' : ''} ${className}`}
         {...props}
       />
       {error && <span className="mt-1 text-xs text-red-500">{error}</span>}
@@ -26,9 +31,14 @@ export function Input({ label, error, className = '', ...props }) {
 export function Select({ label, options = [], placeholder = '— pilih —', className = '', ...props }) {
   return (
     <label className="block">
-      {label && <span className="mb-1 block text-sm font-medium text-slate-700">{label}</span>}
+      {label && (
+        <span className="mb-1 block text-sm font-medium text-slate-700">
+          {label}
+          {props.required && <span className="text-red-500 ml-1">*</span>}
+        </span>
+      )}
       <select
-        className={`w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 ${className}`}
+        className={`w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-100 transition-all ${className}`}
         {...props}
       >
         <option value="">{placeholder}</option>
@@ -44,7 +54,7 @@ export function Select({ label, options = [], placeholder = '— pilih —', cla
 
 export function Alert({ type = 'info', children, onClose }) {
   const styles = {
-    info: 'bg-blue-50 text-blue-800 border-blue-200',
+    info: 'bg-sky-50 text-sky-800 border-sky-200',
     success: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     error: 'bg-red-50 text-red-700 border-red-200',
     warning: 'bg-amber-50 text-amber-800 border-amber-200',

@@ -1,7 +1,7 @@
 {
-  "name": "simtugas-backend",
+  "name": "lms-backend",
   "version": "0.1.0",
-  "description": "REST API LMS SimTugas - pemantauan pengumpulan tugas kuliah",
+  "description": "REST API LMS Politeknik Sukabumi",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -17,14 +17,18 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
+    "googleapis": "^176.0.0",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^1.4.5-lts.1",
+    "nodemailer": "^9.0.5",
+    "socket.io": "^4.8.3",
     "xlsx": "^0.18.5",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.9",
-    "prisma": "^6.5.0"
+    "prisma": "^6.5.0",
+    "prisma-dbml-generator": "^0.12.0"
   }
 }

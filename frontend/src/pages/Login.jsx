@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { Alert, Button, Input } from '../components/ui.jsx';
 import { apiError } from '../api/client.js';
+import { AuthLayout } from '../layouts/AuthLayout.jsx';
 
 export default function Login() {
   const { login } = useAuth();
@@ -22,55 +23,70 @@ export default function Login() {
       const dest = location.state?.from?.pathname;
       navigate(user.wajibLengkapiProfil ? '/lengkapi-profil' : dest || '/', { replace: true });
     } catch (err) {
-      setError(apiError(err, 'Login gagal'));
+      setError(apiError(err, 'Login gagal, periksa kembali username dan password.'));
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-700 via-blue-600 to-indigo-700 p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-6 text-center text-white">
-          <h1 className="text-3xl font-bold">LMS Politeknik Sukabumi</h1>
-          <p className="mt-1 text-sm text-blue-200">
-            Dosen login dengan <b>NIDN</b> · Mahasiswa login dengan <b>NIM</b>
-          </p>
+    <AuthLayout>
+      <div className="w-full max-w-sm mx-auto animate-fade-in-up">
+        <div className="mb-8 text-center md:text-left">
+          <h2 className="text-3xl font-extrabold text-slate-800 mb-2 tracking-tight">Selamat Datang 👋</h2>
+          <p className="text-slate-500 text-sm font-medium">Masuk untuk melanjutkan ke dashboard akademik Anda.</p>
         </div>
 
-        <form onSubmit={submit} className="space-y-4 rounded-2xl bg-white p-7 shadow-xl">
-          <h2 className="text-lg font-semibold text-slate-800">Masuk ke akun Anda</h2>
+        <form onSubmit={submit} className="space-y-6">
           {error && (
             <Alert type="error" onClose={() => setError(null)}>
               {error}
             </Alert>
           )}
-          <Input
-            label="Username (NIDN / NIM / admin)"
-            value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
-            autoFocus
-            required
-          />
-          <Input
-            label="Password"
-            type="password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-          />
-          <Button type="submit" disabled={busy} className="w-full py-2.5">
-            {busy ? 'Memproses...' : 'Masuk'}
+          
+          <div className="space-y-5">
+            <Input
+              label="Username (NIDN / NIM)"
+              placeholder="Masukkan username Anda"
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              autoFocus
+              required
+              className="py-3 px-4 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:border-sky-400 focus:ring-sky-500/20 transition-all font-medium text-slate-800 placeholder-slate-400 shadow-sm"
+            />
+            <Input
+              label="Password"
+              type="password"
+              placeholder="••••••••"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+              className="py-3 px-4 rounded-xl bg-slate-50 border-slate-200 focus:bg-white focus:border-sky-400 focus:ring-sky-500/20 transition-all font-medium text-slate-800 placeholder-slate-400 shadow-sm"
+            />
+          </div>
+
+          <div className="flex items-center justify-between text-sm">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input type="checkbox" className="rounded text-sky-500 focus:ring-sky-500 w-4 h-4 border-slate-300" />
+              <span className="text-slate-600 font-medium group-hover:text-slate-800 transition-colors">Ingat Saya</span>
+            </label>
+            <a href="#" className="text-orange-500 font-semibold hover:text-orange-600 hover:underline transition-colors">Lupa Password?</a>
+          </div>
+
+          <Button 
+            type="submit" 
+            disabled={busy} 
+            className="w-full py-3.5 rounded-xl text-base font-bold bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/30 hover:shadow-sky-500/50 hover-float transition-all"
+          >
+            {busy ? 'Memproses Autentikasi...' : 'Masuk Sekarang'}
           </Button>
-          <p className="text-center text-xs text-slate-400">
-            Login pertama kali? Anda akan diminta melengkapi profil &amp; verifikasi akun.
-          </p>
         </form>
 
-        <p className="mt-4 text-center text-xs text-blue-200">
-          Akun demo: superadmin/admin123 · adminti/prodi123 · dosen &amp; mahasiswa pakai password default
-        </p>
+        <div className="mt-8 text-center text-xs text-slate-400 border-t border-slate-100 pt-6">
+          <p className="font-medium mb-1 text-slate-500">LMS Version 1.0.0 &copy; {new Date().getFullYear()}</p>
+          <p>Login pertama kali wajib melewati tahap Onboarding.</p>
+        </div>
       </div>
-    </div>
+    </AuthLayout>
   );
 }

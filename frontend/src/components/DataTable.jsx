@@ -6,7 +6,7 @@ import { Button, Input, Spinner } from './ui.jsx';
  * Props: columns [{key,label,render}], fetchFn({page,limit,q}) -> {rows, meta},
  *        toolbar (elemen tambahan di header), refreshKey (naikkan untuk reload).
  */
-export function DataTable({ columns, fetchFn, toolbar, refreshKey = 0, limit = 10 }) {
+export function DataTable({ columns, fetchFn, toolbar, leftToolbar, filters = {}, refreshKey = 0, limit = 10 }) {
   const [page, setPage] = useState(1);
   const [q, setQ] = useState('');
   const [query, setQuery] = useState('');
@@ -26,12 +26,18 @@ export function DataTable({ columns, fetchFn, toolbar, refreshKey = 0, limit = 1
     return () => clearTimeout(id);
   }, [q]);
 
+  const filtersStr = JSON.stringify(filters);
+
+  useEffect(() => {
+    setPage(1);
+  }, [filtersStr]);
+
   useEffect(() => {
     let alive = true;
     setLoading(true);
     setError(null);
     fetchRef
-      .current({ page, limit, q: query })
+      .current({ page, limit, q: query, filters })
       .then((result) => {
         if (!alive) return;
         setRows(result.rows);
@@ -42,19 +48,19 @@ export function DataTable({ columns, fetchFn, toolbar, refreshKey = 0, limit = 1
     return () => {
       alive = false;
     };
-  }, [page, query, refreshKey, limit]);
+  }, [page, query, filtersStr, refreshKey, limit]);
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-        <div className="w-full sm:w-64">
-          <Input placeholder="Cari..." value={q} onChange={(e) => setQ(e.target.value)} />
+        <div className="flex flex-wrap items-center gap-2 flex-1 w-full sm:w-auto">
+          {leftToolbar}
+          <div className="w-full sm:w-64">
+            <Input placeholder="Cari..." value={q} onChange={(e) => setQ(e.target.value)} />
+          </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {toolbar}
-          <Button variant="ghost" onClick={() => setPage(1) /* trigger via query sama; pakai refreshKey eksternal */}>
-            ⟳
-          </Button>
         </div>
       </div>
 
