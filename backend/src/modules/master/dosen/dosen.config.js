@@ -4,9 +4,9 @@ import { ADMIN_TRIO, ADMIN_DUO, hashDefault, exp, mergeCaches } from '../../../s
 
 const dosenSchema = z.object({
   nidn: z.string().min(5).max(20),
-  nama: z.string().min(3).max(120),
+  nama: z.string().min(1, 'Nama wajib diisi'),
   email: z.string().email().nullish(),
-  noHp: z.string().max(20).nullish(),
+  noHp: z.string().nullish(),
   status: z.enum(['AKTIF', 'NONAKTIF']).default('AKTIF'),
   prodiId: z.coerce.number().int().positive().nullish(),
 });
@@ -15,24 +15,32 @@ export const dosenConfig = {
   model: 'dosen',
   label: 'Dosen',
   schema: dosenSchema,
-  searchFields: ['nidn', 'nama', 'email'],
+  searchFields: ['nidn', 'nama', 'user.email', 'user.noHp'],
   filters: [
     { name: 'prodiId', field: 'prodiId', parse: (v) => (v ? parseInt(v, 10) : undefined) },
     { name: 'status', field: 'status' },
   ],
   orderBy: { nidn: 'asc' },
-  include: { prodi: { select: { id: true, kodeProdi: true, namaProdi: true } } },
+  include: { prodi: { select: { id: true, kodeProdi: true, namaProdi: true } }, user: { select: { email: true, noHp: true } } },
   toDto: (d) => ({
     id: d.id,
     nidn: d.nidn,
     nama: d.nama,
-    email: d.email,
-    noHp: d.noHp,
+    email: d.user?.email,
+    noHp: d.user?.noHp,
     status: d.status,
     prodiId: d.prodiId,
     prodiKode: d.prodi?.kodeProdi ?? null,
     prodiNama: d.prodi?.namaProdi ?? null,
   }),
+  mapToPrisma: (d) => {
+    return {
+      nidn: d.nidn,
+      nama: d.nama,
+      status: d.status,
+      prodiId: d.prodiId
+    };
+  },
   rowLabel: (d) => `${d.nidn} - ${d.nama}`,
   exportColumns: [exp('nidn', 'nidn'), exp('nama', 'nama'), exp('email', 'email'), exp('no_hp', 'noHp'), exp('status', 'status'), exp('kode_prodi', 'prodiKode')],
   rbac: {
@@ -51,28 +59,47 @@ export const dosenConfig = {
       if (target !== user.prodiId) throw ApiError.forbidden('Anda hanya dapat mengelola dosen pada program studi Anda');
     }
   },
-  /** Sinkron akun login otomatis: username=NIDN, password default (blueprint §6.0a). */
-  afterWrite: async (record, previous, user, client) => {
+  afterWrite: async (record, previous, user, client, originalData) => {
     if (!previous) {
       await client.user.upsert({
         where: { username: record.nidn },
-        update: { dosenId: record.id },
+        update: { 
+          dosenId: record.id,
+          email: originalData.email || undefined,
+          noHp: originalData.noHp || undefined
+        },
         create: {
           username: record.nidn,
           password: await hashDefault(record.nidn),
           role: 'DOSEN',
           dosenId: record.id,
           wajibLengkapiProfil: true,
+          email: originalData.email || null,
+          noHp: originalData.noHp || null
         },
       });
-    } else if (previous.nidn !== record.nidn) {
-      const oldUser = await client.user.findUnique({ where: { username: previous.nidn } });
-      if (oldUser) {
-        try {
-          await client.user.update({ where: { id: oldUser.id }, data: { username: record.nidn } });
-        } catch {
-          throw ApiError.conflict(`Username ${record.nidn} sudah digunakan akun lain`);
+    } else {
+      let targetUser = await client.user.findUnique({ where: { dosenId: record.id } });
+      if (previous.nidn !== record.nidn) {
+        if (targetUser) {
+          try {
+            await client.user.update({
+              where: { id: targetUser.id },
+              data: { username: record.nidn },
+            });
+          } catch {
+            throw ApiError.conflict(`Username ${record.nidn} sudah digunakan akun lain`);
+          }
         }
+      }
+      if (targetUser && (originalData.email !== undefined || originalData.noHp !== undefined)) {
+        await client.user.update({
+          where: { id: targetUser.id },
+          data: {
+            email: originalData.email !== undefined ? originalData.email : undefined,
+            noHp: originalData.noHp !== undefined ? originalData.noHp : undefined
+          }
+        });
       }
     }
   },

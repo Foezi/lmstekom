@@ -108,8 +108,11 @@ export function createCrudService(config) {
   async function create({ user, data }) {
     if (config.assertWriteScope) await config.assertWriteScope(user, data);
     if (config.beforeWrite) await config.beforeWrite(data, null, user);
-    const record = await model().create({ data, include: config.include });
-    await config.afterWrite?.(record, null, user, db);
+    
+    const recordData = config.mapToPrisma ? config.mapToPrisma(data) : data;
+    
+    const record = await model().create({ data: recordData, include: config.include });
+    await config.afterWrite?.(record, null, user, db, data);
     return config.toDto(record);
   }
 
@@ -117,8 +120,11 @@ export function createCrudService(config) {
     const existing = await assertScopedExists(user, id);
     if (config.assertWriteScope) await config.assertWriteScope(user, data, existing);
     if (config.beforeWrite) await config.beforeWrite(data, existing, user);
-    const record = await model().update({ where: { id }, data, include: config.include });
-    await config.afterWrite?.(record, existing, user, db);
+    
+    const recordData = config.mapToPrisma ? config.mapToPrisma(data) : data;
+    
+    const record = await model().update({ where: { id }, data: recordData, include: config.include });
+    await config.afterWrite?.(record, existing, user, db, data);
     return config.toDto(record);
   }
 
@@ -260,10 +266,11 @@ export function createCrudService(config) {
     let inserted = 0;
     try {
       await db.$transaction(async (tx) => {
-        for (const data of batch.rows) {
-          config.beforeWrite?.(data, null, user);
-          const record = await tx[config.model].create({ data, include: config.include });
-          await config.afterWrite?.(record, null, user, tx);
+        for (const item of batch.rows) {
+          config.beforeWrite?.(item, null, user);
+          const recordData = config.mapToPrisma ? config.mapToPrisma(item) : item;
+          const record = await tx[config.model].create({ data: recordData });
+          await config.afterWrite?.(record, null, user, tx, item);
           inserted += 1;
         }
       });

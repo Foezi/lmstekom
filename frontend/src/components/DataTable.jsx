@@ -51,23 +51,28 @@ export function DataTable({ columns, fetchFn, toolbar, leftToolbar, filters = {}
   }, [page, query, filtersStr, refreshKey, limit]);
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3">
-        <div className="flex flex-wrap items-center gap-2 flex-1 w-full sm:w-auto">
-          {leftToolbar}
-          <div className="w-full sm:w-64">
-            <Input placeholder="Cari..." value={q} onChange={(e) => setQ(e.target.value)} />
-          </div>
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-orange-500 overflow-hidden flex flex-col min-h-[500px]">
+      <div className="p-4 md:p-6 border-b border-orange-100 flex flex-col md:flex-row gap-4 items-center bg-white">
+        <div className="flex-1 w-full relative">
+          <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <input 
+            type="text" 
+            placeholder="Cari..." 
+            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all" 
+            value={q} 
+            onChange={(e) => setQ(e.target.value)} 
+          />
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+          {leftToolbar}
           {toolbar}
         </div>
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full text-left text-sm">
+        <table className="min-w-full text-left border-collapse">
           <thead>
-            <tr className="border-b border-slate-100 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+            <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
               {columns.map((c) => (
                 <th key={c.key} className="px-4 py-3 font-semibold">
                   {c.label}

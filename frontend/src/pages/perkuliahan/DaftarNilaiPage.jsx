@@ -94,34 +94,35 @@ export default function DaftarNilaiPage() {
     <div className="flex flex-col md:flex-row gap-6 items-start">
       <SidebarMenu currentGroup="Perkuliahan" />
 
-      <div className="flex-1 w-full bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm overflow-hidden min-h-[500px]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+      <div className="flex-1 w-full space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Daftar Nilai Mahasiswa</h1>
         </div>
 
-        {error && <div className="p-3 mb-4 text-red-700 bg-red-100 rounded-lg">{error}</div>}
+        {error && <div className="p-3 text-red-700 bg-red-100 rounded-lg">{error}</div>}
 
-        {/* Toolbox / Filter */}
-        <form onSubmit={handleSearch} className="flex flex-col gap-3 mb-6">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <div className="relative flex-1">
-              <input 
-                type="text" 
-                value={filters.q}
-                onChange={(e) => setFilters(f => ({ ...f, q: e.target.value }))}
-                className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 bg-white" 
-                placeholder="Cari NIM atau Nama..." 
-              />
-              <svg className="w-4 h-4 text-slate-400 absolute left-4 top-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <button type="submit" className="px-4 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700 transition-colors shrink-0 shadow-sm">
-              Cari
-            </button>
-          </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-orange-500 overflow-hidden flex flex-col min-h-[500px]">
+          {/* Toolbox / Filter */}
+          <div className="p-4 md:p-6 border-b border-orange-100 flex flex-col gap-4 bg-white">
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 w-full">
+              <div className="relative flex-1">
+                <svg className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input 
+                  type="text" 
+                  value={filters.q}
+                  onChange={(e) => setFilters(f => ({ ...f, q: e.target.value }))}
+                  className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all text-sm" 
+                  placeholder="Cari NIM atau Nama..." 
+                />
+              </div>
+              <button type="submit" className="px-4 py-2 bg-orange-500 text-white rounded-lg font-semibold hover:bg-orange-600 transition-colors shrink-0 shadow-sm shadow-orange-500/20 text-sm">
+                Cari
+              </button>
+            </form>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           
           <Select
             label="Program Studi"
@@ -164,9 +165,8 @@ export default function DaftarNilaiPage() {
             disabled={!filters.prodiId || !filters.tahunAkademikId}
             placeholder="Pilih Kelas"
           />
-          
           </div>
-        </form>
+          </div>
 
         <div className="overflow-x-auto rounded-lg border border-slate-200">
           <table className="w-full text-left text-sm text-slate-700">
@@ -227,6 +227,7 @@ export default function DaftarNilaiPage() {
               )}
             </tbody>
           </table>
+        </div>
         </div>
       </div>
     </div>

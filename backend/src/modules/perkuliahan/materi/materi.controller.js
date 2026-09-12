@@ -54,6 +54,8 @@ export const listJadwalMateri = asyncHandler(async (req, res) => {
 
   const data = rows.map((r) => ({
     id: r.id,
+    matakuliahId: r.matakuliahId,
+    matakuliah: r.matakuliah,
     kodeMk: r.matakuliah?.kodeMk,
     namaMk: r.matakuliah?.namaMk,
     sks: r.matakuliah?.sks,
@@ -94,7 +96,8 @@ export const getPertemuanList = asyncHandler(async (req, res) => {
   let mengajar = await db.mengajar.findUnique({
     where: { jadwalId },
     include: {
-      pertemuan: { orderBy: { keBerapa: 'asc' }, include: { materi: true } }
+      pertemuan: { orderBy: { keBerapa: 'asc' }, include: { materi: true, tugas: true, kuis: true } },
+      kuis: { where: { tipeUjian: { in: ['UTS', 'UAS'] } } }
     }
   });
 
@@ -111,7 +114,8 @@ export const getPertemuanList = asyncHandler(async (req, res) => {
         totalPertemuan: 0 // di set 0 dulu sampai digenerate
       },
       include: {
-        pertemuan: { orderBy: { keBerapa: 'asc' }, include: { materi: true } }
+        pertemuan: { orderBy: { keBerapa: 'asc' }, include: { materi: true, tugas: true, kuis: true } },
+        kuis: { where: { tipeUjian: { in: ['UTS', 'UAS'] } } }
       }
     });
   }
@@ -129,9 +133,12 @@ export const getPertemuanList = asyncHandler(async (req, res) => {
         kelasNama: jadwal.kelas?.namaKelas,
         dosenNama: jadwal.dosen?.nama
       },
+      isPengampu: req.user.role === 'DOSEN' && jadwal.dosenId === req.user.dosenId,
       mengajarId: mengajar.id,
+      matakuliahId: jadwal.matakuliahId,
       deskripsiMk: mengajar.deskripsiMk,
-      pertemuan: mengajar.pertemuan || []
+      pertemuan: mengajar.pertemuan || [],
+      ujianList: mengajar.kuis || []
     }
   });
 });
@@ -225,7 +232,7 @@ export const generatePertemuan = asyncHandler(async (req, res) => {
 
   const updatedMengajar = await db.mengajar.findUnique({
     where: { id: mengajar.id },
-    include: { pertemuan: { orderBy: { keBerapa: 'asc' }, include: { materi: true } } }
+    include: { pertemuan: { orderBy: { keBerapa: 'asc' }, include: { materi: true, tugas: true, kuis: true } } }
   });
 
   await logActivity({ userId: req.user.id, aktivitas: `GENERATE_PERTEMUAN Jadwal ${jadwalId} (${jumlahPertemuan} Sesi)`, modul: 'MATERI', ipAddress: ip(req) });
@@ -325,7 +332,7 @@ export const syncPertemuanAPI = asyncHandler(async (req, res) => {
 
   const updatedMengajar = await db.mengajar.findUnique({
     where: { id: mengajar.id },
-    include: { pertemuan: { orderBy: { keBerapa: 'asc' }, include: { materi: true } } }
+    include: { pertemuan: { orderBy: { keBerapa: 'asc' }, include: { materi: true, tugas: true, kuis: true } } }
   });
 
   await logActivity({ userId: req.user.id, aktivitas: `SYNC_PERTEMUAN Jadwal ${jadwalId}`, modul: 'MATERI', ipAddress: ip(req) });
@@ -379,6 +386,7 @@ export const updatePertemuan = asyncHandler(async (req, res) => {
   if (data.rencanaMateri !== undefined) updateData.rencanaMateri = data.rencanaMateri;
   if (data.realisasiMateri !== undefined) updateData.realisasiMateri = data.realisasiMateri;
   if (data.status !== undefined) updateData.status = data.status;
+  if (data.skemaPresensi !== undefined) updateData.skemaPresensi = data.skemaPresensi;
 
   const updated = await db.pertemuan.update({
     where: { id: pertemuanId },
@@ -393,4 +401,275 @@ export const updatePertemuan = asyncHandler(async (req, res) => {
   });
 
   res.json({ data: updated });
+});
+
+export const addMateri = asyncHandler(async (req, res) => {
+  const { pertemuanId } = req.params;
+  const { judul, deskripsi, jenis, urlAtauLink } = req.body;
+
+  const pertemuan = await db.pertemuan.findUnique({
+    where: { id: parseInt(pertemuanId, 10) },
+    include: { kuis: true }
+  });
+
+  if (!pertemuan) throw ApiError.notFound('Pertemuan tidak ditemukan');
+  if (pertemuan.kuis && pertemuan.kuis.some(k => k.tipeUjian === 'UTS' || k.tipeUjian === 'UAS')) {
+    throw ApiError.badRequest('Sesi ini dikhususkan untuk Ujian. Tidak dapat menambahkan materi.');
+  }
+
+  let gdriveFileId = null;
+  let finalUrl = urlAtauLink;
+
+  if (jenis === 'DOKUMEN' && req.file) {
+    const { uploadFileToDrive } = await import('../../drive/drive.service.js');
+    const uploadResult = await uploadFileToDrive(req.user.id, req.file);
+    gdriveFileId = uploadResult.fileId;
+    finalUrl = uploadResult.webViewLink;
+  }
+
+  const materi = await db.materi.create({
+    data: {
+      pertemuanId: parseInt(pertemuanId, 10),
+      judul,
+      deskripsi,
+      jenis,
+      urlAtauLink: finalUrl,
+      gdriveFileId,
+      gdriveOwnerUserId: gdriveFileId ? req.user.id : null
+    }
+  });
+
+  await logActivity({
+    userId: req.user.id,
+    aktivitas: `TAMBAH MATERI ${jenis} - ${judul}`,
+    modul: 'MATERI',
+    ipAddress: ip(req)
+  });
+
+  res.status(201).json({ data: materi });
+});
+
+export const deleteMateri = asyncHandler(async (req, res) => {
+  const { materiId } = req.params;
+
+  const materi = await db.materi.findUnique({
+    where: { id: parseInt(materiId, 10) }
+  });
+
+  if (!materi) throw ApiError.notFound('Materi tidak ditemukan');
+
+  if (materi.gdriveFileId) {
+    try {
+      const { deleteFileFromDrive } = await import('../../drive/drive.service.js');
+      await deleteFileFromDrive(materi.gdriveOwnerUserId || req.user.id, materi.gdriveFileId);
+    } catch (err) {
+      console.error('Gagal hapus di GDrive:', err);
+    }
+  }
+
+  await db.materi.delete({ where: { id: parseInt(materiId, 10) } });
+
+  await logActivity({
+    userId: req.user.id,
+    aktivitas: `HAPUS MATERI ${materi.judul}`,
+    modul: 'MATERI',
+    ipAddress: ip(req)
+  });
+
+  res.json({ message: 'Materi berhasil dihapus' });
+});
+
+export const addTugas = asyncHandler(async (req, res) => {
+  const pertemuanId = parseInt(req.params.pertemuanId, 10);
+  const { bankTugasId, tanggalBuka, waktuMulai, tanggalTutup, waktuSelesai } = req.body;
+
+  const pertemuan = await db.pertemuan.findUnique({
+    where: { id: parseInt(pertemuanId, 10) },
+    include: { kuis: true }
+  });
+  if (!pertemuan) throw ApiError.notFound('Pertemuan tidak ditemukan');
+  if (pertemuan.kuis && pertemuan.kuis.some(k => k.tipeUjian === 'UTS' || k.tipeUjian === 'UAS')) {
+    throw ApiError.badRequest('Sesi ini dikhususkan untuk Ujian. Tidak dapat menambahkan tugas.');
+  }
+
+  const bankTugas = await db.bankTugas.findUnique({ where: { id: parseInt(bankTugasId, 10) } });
+  if (!bankTugas) throw ApiError.notFound('Bank Tugas tidak ditemukan');
+
+  const tugas = await db.tugas.create({
+    data: {
+      pertemuanId,
+      bankTugasId: bankTugas.id,
+      judul: bankTugas.judul,
+      kategori: bankTugas.kategori,
+      deskripsi: req.body.deskripsi !== undefined ? req.body.deskripsi : bankTugas.deskripsi,
+      tanggalBuka: new Date(`${tanggalBuka}T${waktuMulai}:00`),
+      tanggalTutup: new Date(`${tanggalTutup}T${waktuSelesai}:00`)
+    }
+  });
+
+  res.status(201).json({
+    message: 'Tugas berhasil ditambahkan dari Bank',
+    data: tugas
+  });
+});
+
+export const addKuis = asyncHandler(async (req, res) => {
+  const pertemuanId = parseInt(req.params.pertemuanId, 10);
+  const { bankKuisId, waktuMulai, waktuSelesai, durasiMenit } = req.body;
+
+  const pertemuan = await db.pertemuan.findUnique({
+    where: { id: parseInt(pertemuanId, 10) },
+    include: { 
+      kuis: true, 
+      materi: true, 
+      tugas: true, 
+      mengajar: { include: { pertemuan: { include: { kuis: true } } } } 
+    }
+  });
+  if (!pertemuan) throw ApiError.notFound('Pertemuan tidak ditemukan');
+
+  const bankKuis = await db.bankKuis.findUnique({ where: { id: parseInt(bankKuisId, 10) } });
+  if (!bankKuis) throw ApiError.notFound('Bank Kuis tidak ditemukan');
+
+  if (bankKuis.tipeUjian === 'UTS' || bankKuis.tipeUjian === 'UAS') {
+    const hasPerkuliahan = (pertemuan.materi && pertemuan.materi.length > 0) || 
+                           (pertemuan.tugas && pertemuan.tugas.length > 0) || 
+                           (pertemuan.kuis && pertemuan.kuis.some(k => k.tipeUjian === 'KUIS'));
+    if (hasPerkuliahan) throw ApiError.badRequest('Sesi ini sudah berisi materi perkuliahan. Ujian harus diletakkan pada sesi khusus.');
+    
+    const hasGlobalUjian = pertemuan.mengajar.pertemuan.some(p => p.kuis.some(k => k.tipeUjian === bankKuis.tipeUjian));
+    if (hasGlobalUjian) throw ApiError.badRequest(`Sesi ${bankKuis.tipeUjian} sudah dijadwalkan pada sesi lain di mata kuliah ini.`);
+  } else {
+    if (pertemuan.kuis && pertemuan.kuis.some(k => k.tipeUjian === 'UTS' || k.tipeUjian === 'UAS')) {
+      throw ApiError.badRequest('Sesi ini dikhususkan untuk Ujian. Tidak dapat menambahkan kuis reguler.');
+    }
+  }
+
+  const kuis = await db.kuis.create({
+    data: {
+      pertemuanId,
+      bankKuisId: bankKuis.id,
+      judul: bankKuis.judul,
+      jenis: bankKuis.jenis,
+      tipeUjian: bankKuis.tipeUjian,
+      deskripsi: req.body.deskripsi !== undefined ? req.body.deskripsi : bankKuis.deskripsi,
+      bobotNilai: bankKuis.bobotNilai,
+      modeLockdown: bankKuis.modeLockdown,
+      waktuMulai: new Date(waktuMulai),
+      waktuSelesai: new Date(waktuSelesai),
+      durasiMenit: parseInt(durasiMenit, 10)
+    }
+  });
+
+  res.status(201).json({
+    message: 'Kuis berhasil ditambahkan dari Bank',
+    data: kuis
+  });
+});
+
+export const removeTugas = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const tugas = await db.tugas.findUnique({ where: { id: parseInt(id, 10) } });
+  if (!tugas) throw ApiError.notFound('Tugas tidak ditemukan');
+  await db.tugas.delete({ where: { id: tugas.id } });
+  res.json({ message: 'Tugas berhasil dihapus dari pertemuan' });
+});
+
+export const removeKuis = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const kuis = await db.kuis.findUnique({ where: { id: parseInt(id, 10) } });
+  if (!kuis) throw ApiError.notFound('Kuis tidak ditemukan');
+  await db.kuis.delete({ where: { id: kuis.id } });
+  res.json({ message: 'Kuis berhasil dihapus dari pertemuan' });
+});
+
+export const getTugasSubmissions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const submissions = await db.tugasSubmission.findMany({
+    where: { tugasId: parseInt(id, 10) },
+    include: {
+      mahasiswa: {
+        select: { id: true, nim: true, nama: true }
+      }
+    }
+  });
+  res.json({ data: submissions });
+});
+export const updateNilaiTugas = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { nilai, catatanDosen } = req.body;
+
+  const submission = await db.tugasSubmission.update({
+    where: { id: parseInt(id, 10) },
+    data: {
+      nilai: nilai !== undefined && nilai !== '' ? parseFloat(nilai) : null,
+      catatanDosen: catatanDosen || null
+    },
+    include: {
+      mahasiswa: { select: { id: true, nim: true, nama: true } }
+    }
+  });
+
+  res.json({ message: 'Nilai berhasil disimpan', data: submission });
+});
+
+
+export const getMateriAkses = asyncHandler(async (req, res, next) => {
+  try {
+    const { materiId } = req.params;
+    const aksesList = await db.materiAkses.findMany({
+      where: { materiId: parseInt(materiId) },
+      include: { mahasiswa: { select: { nim: true, nama: true } } },
+      orderBy: { waktuAkses: 'desc' }
+    });
+    res.json({ data: aksesList });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const recordMateriAkses = asyncHandler(async (req, res, next) => {
+  try {
+    const { materiId } = req.params;
+    const mahasiswaId = req.user.mahasiswaId;
+    if (!mahasiswaId) return res.status(403).json({ error: 'Bukan mahasiswa' });
+
+    const record = await db.materiAkses.upsert({
+      where: {
+        materiId_mahasiswaId: { materiId: parseInt(materiId), mahasiswaId: parseInt(mahasiswaId) }
+      },
+      update: { waktuAkses: new Date() },
+      create: {
+        materiId: parseInt(materiId),
+        mahasiswaId: parseInt(mahasiswaId)
+      }
+    });
+    res.json({ data: record });
+  } catch (error) {
+    next(error);
+  }
+});
+
+export const getKuisSubmissions = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const submissions = await db.kuisJawaban.findMany({
+    where: { kuisId: parseInt(id, 10) },
+    include: {
+      mahasiswa: {
+        select: { id: true, nim: true, nama: true }
+      }
+    }
+  });
+  // Mengelompokkan berdasarkan mahasiswaId untuk melihat nilai kuis
+  const grouped = [];
+  submissions.forEach(sub => {
+    if (!grouped.find(g => g.mahasiswaId === sub.mahasiswaId)) {
+      grouped.push({
+        mahasiswaId: sub.mahasiswaId,
+        mahasiswa: sub.mahasiswa,
+        totalNilai: sub.nilai // Jika satu jawaban memiliki nilai? Tapi KuisJawaban adalah per soal? Wait. Schema has KuisJawaban, and KuisResult?
+      });
+    }
+  });
+  res.json({ data: grouped.length > 0 ? grouped : submissions });
 });

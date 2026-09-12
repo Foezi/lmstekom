@@ -1,14 +1,28 @@
 import { NavLink, Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { useEffect, useRef, useLayoutEffect } from 'react';
+import { useEffect, useRef, useLayoutEffect, useState } from 'react';
 import NProgress from 'nprogress';
+import * as LucideIcons from 'lucide-react';
 import { MENU, ROLES } from '../constants/rbac.js';
 import { useAuth } from '../context/AuthContext.jsx';
+import logoPoltek from '../assets/logo-poltek.jpg';
 
 export function Layout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const mobileNavRef = useRef(null);
+  const profileRef = useRef(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (profileRef.current && !profileRef.current.contains(event.target)) {
+        setIsProfileOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useLayoutEffect(() => {
     const nav = mobileNavRef.current;
@@ -37,7 +51,7 @@ export function Layout() {
   const groups = [];
   for (const item of allowedMenu) {
     if (item.group) {
-      groups.push({ group: item.group, items: [] });
+      groups.push({ group: item.group, items: [], icon: item.icon });
     } else {
       if (groups.length === 0) groups.push({ group: null, items: [] });
       groups[groups.length - 1].items.push(item);
@@ -54,12 +68,12 @@ export function Layout() {
             
             {/* Left: Logo & Branding */}
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm">
-                <span className="text-sm font-black text-sky-600 tracking-tighter">PS</span>
+              <div className="w-9 h-9 bg-white rounded-lg flex items-center justify-center shadow-sm p-1">
+                <img src={logoPoltek} alt="Politeknik Sukabumi" className="w-full h-full object-contain" />
               </div>
-              <div className="hidden sm:block">
+              <div className="block">
                 <p className="text-lg font-bold leading-tight tracking-tight text-white">LMS Poltek</p>
-                <p className="text-[10px] text-sky-200 uppercase tracking-widest font-semibold">Sukabumi</p>
+                <p className="text-[11px] font-medium text-sky-200 tracking-wider uppercase">Sukabumi</p>
               </div>
             </div>
 
@@ -81,10 +95,18 @@ export function Layout() {
                           }`
                         }
                       >
-                        {item.label}
+                        {(() => {
+                          const Icon = item.icon ? LucideIcons[item.icon] : null;
+                          return (
+                            <span className="flex items-center gap-2">
+                              {Icon && <Icon className="w-4 h-4" />}
+                              {item.label}
+                            </span>
+                          );
+                        })()}
                       </NavLink>
                     ))
-                  ) : ['Data Master', 'Perkuliahan'].includes(g.group) ? (
+                  ) : ['Data Master', 'Perkuliahan', 'Ruang Diskusi'].includes(g.group) ? (
                     <NavLink
                       to={g.items[0]?.to || '#'}
                       className={() => {
@@ -96,7 +118,15 @@ export function Layout() {
                         }`;
                       }}
                     >
-                      {g.group}
+                      {(() => {
+                        const Icon = g.icon ? LucideIcons[g.icon] : null;
+                        return (
+                          <span className="flex items-center gap-2">
+                            {Icon && <Icon className="w-4 h-4" />}
+                            {g.group}
+                          </span>
+                        );
+                      })()}
                     </NavLink>
                   ) : null}
                 </div>
@@ -105,15 +135,11 @@ export function Layout() {
 
             {/* Right: User Profile & Actions */}
             <div className="flex items-center gap-4">
-              <button className="text-sky-100 hover:text-white relative p-1">
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                </svg>
-                <span className="absolute top-0 right-0 w-2.5 h-2.5 bg-orange-500 rounded-full border-2 border-sky-600"></span>
-              </button>
-              
-              <div className="relative group flex items-center h-full border-l border-sky-500/50 pl-3">
-                <button className="flex items-center gap-3 outline-none text-left">
+              <div className="relative group flex items-center h-full pl-3" ref={profileRef}>
+                <button 
+                  className="flex items-center gap-3 outline-none text-left"
+                  onClick={() => setIsProfileOpen(!isProfileOpen)}
+                >
                   <div className="hidden lg:block">
                     <p className="text-sm font-bold text-white">{user?.nickname || user?.nama}</p>
                     <p className="text-xs text-sky-200">{ROLES[user?.role]}</p>
@@ -128,16 +154,17 @@ export function Layout() {
                 </button>
                 
                 {/* Dropdown Profil */}
-                <div className="absolute top-[50px] right-0 mt-2 w-48 bg-white rounded-xl shadow-xl shadow-slate-200/50 border border-slate-100 py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all transform origin-top scale-95 group-hover:scale-100 z-50">
+                <div className={`absolute top-[50px] right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl shadow-slate-400/40 border-t-4 border-t-orange-500 border border-slate-200 py-2 transition-all transform origin-top z-50 ${isProfileOpen ? 'opacity-100 visible scale-100' : 'opacity-0 invisible scale-95 group-hover:opacity-100 group-hover:visible group-hover:scale-100'}`}>
                   {validGroups.find(g => g.group === 'Lainnya')?.items.map(item => (
                     <NavLink
                       key={item.to}
                       to={item.to}
+                      onClick={() => setIsProfileOpen(false)}
                       className={({ isActive }) =>
                         `flex items-center gap-2 px-4 py-2 text-sm transition-colors mx-2 rounded-lg ${
                           isActive 
-                            ? 'bg-sky-50 text-sky-600 font-bold' 
-                            : 'text-slate-600 hover:bg-slate-50 hover:text-sky-600'
+                            ? 'bg-orange-50 text-orange-600 font-bold' 
+                            : 'text-slate-600 hover:bg-orange-50 hover:text-orange-600'
                         }`
                       }
                     >
@@ -165,19 +192,24 @@ export function Layout() {
 
       {/* Mobile Navigation (Scrollable horizontal) */}
       <nav ref={mobileNavRef} className="relative flex gap-2 overflow-x-auto bg-white px-4 py-3 md:hidden border-b border-slate-200 shadow-sm" style={{ scrollbarWidth: 'none' }}>
-        {validGroups.filter(g => g.group !== 'Lainnya').flatMap(g => ['Data Master', 'Perkuliahan'].includes(g.group) ? [{ to: g.items[0]?.to || '#', label: g.group, isLayoutGroup: true, items: g.items }] : g.items).map((item) => (
+        {validGroups.filter(g => g.group !== 'Lainnya').flatMap(g => ['Data Master', 'Perkuliahan', 'Ruang Diskusi'].includes(g.group) ? [{ to: g.items[0]?.to || '#', label: g.group, icon: g.icon, isLayoutGroup: true, items: g.items }] : g.items).map((item) => (
           <NavLink
             key={item.label}
             to={item.to}
-            end={item.to === '/'}
-            className={() => {
-              const isActive = item.isLayoutGroup 
-                ? item.items.some(i => location.pathname.startsWith(i.to)) 
-                : location.pathname === item.to || (item.to !== '/' && location.pathname.startsWith(item.to));
-              return `${isActive ? 'active-nav-item bg-sky-500 text-white shadow-sm' : 'bg-slate-100 text-slate-600'} whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-all`;
+            className={({ isActive }) => {
+              const active = item.isLayoutGroup ? item.items.some(i => location.pathname.startsWith(i.to)) : isActive;
+              return `${active ? 'active-nav-item bg-orange-500 text-white shadow-md shadow-orange-500/30' : 'bg-slate-100 text-slate-600'} whitespace-nowrap rounded-full px-5 py-2 text-sm font-medium transition-all`;
             }}
           >
-            {item.label}
+            {(() => {
+              const Icon = item.icon ? LucideIcons[item.icon] : null;
+              return (
+                <span className="flex items-center gap-2">
+                  {Icon && <Icon className="w-4 h-4" />}
+                  {item.label}
+                </span>
+              );
+            })()}
           </NavLink>
         ))}
       </nav>

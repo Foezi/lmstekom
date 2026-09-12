@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useRef, useLayoutEffect } from 'react';
+import { NavLink, useLocation } from 'react-router-dom';
 import { MENU } from '../constants/rbac.js';
 import { useAuth } from '../context/AuthContext.jsx';
 
@@ -78,6 +78,15 @@ export const ENTITY_ICONS = {
 
 export function SidebarMenu({ currentGroup }) {
   const { user } = useAuth();
+  const location = useLocation();
+  const mobileNavRef = useRef(null);
+
+  useLayoutEffect(() => {
+    const activeItem = mobileNavRef.current?.querySelector('.active-sidebar-nav');
+    if (activeItem) {
+      activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }, [location.pathname]);
 
   let inGroup = false;
   const allowedSidebarMenu = MENU.filter(item => !item.hidden).reduce((acc, curr) => {
@@ -100,7 +109,7 @@ export function SidebarMenu({ currentGroup }) {
     <>
       {/* KIRI: Sidebar Menu Master (Desktop) */}
       <div className="hidden md:flex w-64 flex-col bg-white border border-slate-200 rounded-xl shadow-sm sticky top-24 shrink-0 max-h-[calc(100vh-7rem)] overflow-y-auto">
-        <div className="p-4 bg-sky-50 border-b border-sky-100">
+        <div className="p-4 bg-orange-50 border-b border-orange-100">
           <h2 className="font-bold text-sky-800 text-lg tracking-tight">{currentGroup}</h2>
         </div>
         <div className="flex flex-col divide-y divide-slate-100">
@@ -111,12 +120,12 @@ export function SidebarMenu({ currentGroup }) {
               key={m.to}
               to={m.to}
               className={({ isActive }) => 
-                `flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors border-l-4 ${isActive ? 'bg-sky-50 text-sky-700 border-l-sky-500' : 'border-l-transparent text-slate-600 hover:bg-slate-50 hover:text-sky-600'}`
+                `flex items-center gap-3 px-4 py-3 text-sm font-semibold transition-colors border-l-4 ${isActive ? 'bg-orange-50 text-orange-700 border-l-orange-500' : 'border-l-transparent text-slate-600 hover:bg-slate-50 hover:text-orange-600'}`
               }
             >
               {({ isActive }) => (
                 <>
-                  <div className={isActive ? 'text-sky-600' : 'text-slate-400'}>{ENTITY_ICONS[iconKey] || ENTITY_ICONS['prodi']}</div>
+                  <div className={isActive ? 'text-orange-600' : 'text-slate-400'}>{ENTITY_ICONS[iconKey] || ENTITY_ICONS['prodi']}</div>
                   {m.label}
                 </>
               )}
@@ -126,7 +135,7 @@ export function SidebarMenu({ currentGroup }) {
       </div>
 
       {/* KIRI ATAS: Slide Menu Master (Mobile) */}
-      <div className="md:hidden w-full overflow-x-auto flex gap-2 pb-2">
+      <div ref={mobileNavRef} className="md:hidden w-full overflow-x-auto flex gap-2 pb-2" style={{ scrollbarWidth: 'none' }}>
         {allowedSidebarMenu.map(m => {
           const iconKey = m.entity || m.to.replace('/', '');
           return (
@@ -134,7 +143,7 @@ export function SidebarMenu({ currentGroup }) {
             key={m.to}
             to={m.to}
             className={({ isActive }) => 
-              `flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-colors ${isActive ? 'bg-sky-600 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`
+              `flex items-center gap-2 whitespace-nowrap px-4 py-2 rounded-full text-xs font-bold transition-colors ${isActive ? 'active-sidebar-nav bg-orange-500 text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'}`
             }
           >
             {({ isActive }) => (

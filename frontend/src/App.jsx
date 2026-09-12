@@ -14,7 +14,11 @@ import MateriList from './pages/perkuliahan/MateriList.jsx';
 import MateriDetail from './pages/perkuliahan/MateriDetail.jsx';
 import RuangDiskusi from './pages/perkuliahan/RuangDiskusi.jsx';
 import PresensiPage from './pages/perkuliahan/PresensiPage.jsx';
+import KelolaTugasKuis from './pages/perkuliahan/KelolaTugasKuis.jsx';
+import KelolaUjianPage from './pages/perkuliahan/KelolaUjianPage.jsx';
+import KelolaSoalKuisPage from './pages/perkuliahan/KelolaSoalKuisPage.jsx';
 import DaftarNilaiPage from './pages/perkuliahan/DaftarNilaiPage.jsx';
+import RekapPenilaianDosenPage from './pages/perkuliahan/RekapPenilaianDosenPage.jsx';
 import { MasterDataPage } from './pages/master/MasterDataPage.jsx';
 import MockupPerkuliahan from './pages/MockupPerkuliahan.jsx';
 import { SkemaKurikulumPage } from './pages/SkemaKurikulumPage.jsx';
@@ -87,8 +91,12 @@ export default function App() {
             <Route path="/profil" element={<Profil />} />
             <Route path="materi" element={<MateriList />} />
             <Route path="materi/:id" element={<MateriDetail />} />
+            <Route path="tugas-kuis" element={<ProtectedRoute roles={['DOSEN']}><KelolaTugasKuis /></ProtectedRoute>} />
+            <Route path="ujian" element={<ProtectedRoute roles={['DOSEN']}><KelolaUjianPage /></ProtectedRoute>} />
+            <Route path="kuis/:kuisId/soal" element={<ProtectedRoute roles={['DOSEN']}><KelolaSoalKuisPage /></ProtectedRoute>} />
             <Route path="diskusi" element={<RuangDiskusi />} />
             <Route path="presensi" element={<PresensiPage />} />
+            <Route path="rekap-penilaian" element={<ProtectedRoute roles={['DOSEN']}><RekapPenilaianDosenPage /></ProtectedRoute>} />
             <Route path="nilai" element={<ProtectedRoute roles={['ADMIN', 'ADMIN_AKADEMIK', 'ADMIN_PRODI']}><DaftarNilaiPage /></ProtectedRoute>} />
             <Route path="tugas" element={<MockupPerkuliahan title="Tugas & Kuis" />} />
             <Route

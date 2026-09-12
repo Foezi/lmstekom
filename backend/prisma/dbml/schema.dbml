@@ -15,8 +15,8 @@ Table User {
   prodiKelola Prodi
   nickname String
   avatarUrl String
-  emailAktif String
-  noWhatsapp String
+  email String
+  noHp String
   statusVerifikasiEmail VerifikasiStatus [not null, default: 'BELUM']
   statusVerifikasiWa VerifikasiStatus [not null, default: 'BELUM']
   googleDriveConnected Boolean [not null, default: false]
@@ -144,8 +144,6 @@ Table Dosen {
   id Int [pk, increment]
   nidn String [unique, not null]
   nama String [not null]
-  email String
-  noHp String
   status StatusAktif [not null, default: 'AKTIF']
   prodiId Int
   prodi Prodi
@@ -156,6 +154,8 @@ Table Dosen {
   jadwals Jadwal [not null]
   mengajars Mengajar [not null]
   mahasiswaBimbingan Mahasiswa [not null]
+  bankTugas BankTugas [not null]
+  bankKuis BankKuis [not null]
 }
 
 Table Mahasiswa {
@@ -166,7 +166,6 @@ Table Mahasiswa {
   kelas Kelas [not null]
   prodiId Int [not null]
   prodi Prodi [not null]
-  email String
   jenisKelamin JenisKelamin
   tempatLahir String
   tanggalLahir DateTime
@@ -184,6 +183,8 @@ Table Mahasiswa {
   nilaiAkhirs NilaiAkhir [not null]
   presensis Presensi [not null]
   riwayatStatus RiwayatStatusMahasiswa [not null]
+  videoProgresses MateriVideoProgress [not null]
+  materiAkses MateriAkses [not null]
 }
 
 Table RiwayatStatusMahasiswa {
@@ -248,6 +249,8 @@ Table MataKuliah {
   updatedAt DateTime [not null]
   jadwals Jadwal [not null]
   mengajars Mengajar [not null]
+  bankTugas BankTugas [not null]
+  bankKuis BankKuis [not null]
 
   indexes {
     (prodiId, kodeMk) [unique]
@@ -301,6 +304,7 @@ Table Mengajar {
   updatedAt DateTime [not null]
   pertemuan Pertemuan [not null]
   nilaiAkhir NilaiAkhir [not null]
+  kuis Kuis [not null]
 }
 
 Table Pertemuan {
@@ -320,6 +324,7 @@ Table Pertemuan {
   rencanaMateri String
   realisasiMateri String
   status StatusPertemuan [not null, default: 'BELUM']
+  skemaPresensi SkemaPresensi [not null, default: 'SINKRONUS']
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   materi Materi [not null]
@@ -346,6 +351,50 @@ Table Materi {
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   diskusis Diskusi [not null]
+  videoQuestions MateriVideoQuestion [not null]
+  videoProgresses MateriVideoProgress [not null]
+  materiAkses MateriAkses [not null]
+}
+
+Table MateriVideoQuestion {
+  id Int [pk, increment]
+  materiId Int [not null]
+  materi Materi [not null]
+  timestamp Int [not null]
+  pertanyaan String [not null]
+  pilihan Json [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table MateriVideoProgress {
+  id Int [pk, increment]
+  materiId Int [not null]
+  materi Materi [not null]
+  mahasiswaId Int [not null]
+  mahasiswa Mahasiswa [not null]
+  completed Boolean [not null, default: false]
+  lastTimestamp Int [not null, default: 0]
+  videoDuration Int [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+
+  indexes {
+    (materiId, mahasiswaId) [unique]
+  }
+}
+
+Table MateriAkses {
+  id Int [pk, increment]
+  materiId Int [not null]
+  materi Materi [not null]
+  mahasiswaId Int [not null]
+  mahasiswa Mahasiswa [not null]
+  waktuAkses DateTime [default: `now()`, not null]
+
+  indexes {
+    (materiId, mahasiswaId) [unique]
+  }
 }
 
 Table Tugas {
@@ -357,6 +406,8 @@ Table Tugas {
   deskripsi String
   gdriveFileIdLampiran String
   gdriveOwnerUserId Int
+  bankTugasId Int
+  bankTugas BankTugas
   tanggalBuka DateTime [not null]
   tanggalTutup DateTime [not null]
   status StatusTugas [not null, default: 'OPEN']
@@ -386,10 +437,28 @@ Table TugasSubmission {
   }
 }
 
+Table BankTugas {
+  id Int [pk, increment]
+  dosenId Int [not null]
+  dosen Dosen [not null]
+  matakuliahId Int [not null]
+  matakuliah MataKuliah [not null]
+  judul String [not null]
+  kategori String
+  deskripsi String
+  fileUrl String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  tugasRiil Tugas [not null]
+}
+
 Table Kuis {
   id Int [pk, increment]
-  pertemuanId Int [not null]
-  pertemuan Pertemuan [not null]
+  pertemuanId Int
+  pertemuan Pertemuan
+  mengajarId Int
+  mengajar Mengajar
+  tipeUjian TipeUjian [not null, default: 'KUIS']
   judul String [not null]
   jenis JenisKuis [not null]
   deskripsi String
@@ -398,11 +467,45 @@ Table Kuis {
   waktuSelesai DateTime [not null]
   durasiMenit Int [not null]
   modeLockdown Boolean [not null, default: true]
+  bankKuisId Int
+  bankKuis BankKuis
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
   soal KuisSoal [not null]
   attempts KuisAttempt [not null]
   jawaban KuisJawaban [not null]
+}
+
+Table BankKuis {
+  id Int [pk, increment]
+  dosenId Int [not null]
+  dosen Dosen [not null]
+  matakuliahId Int [not null]
+  matakuliah MataKuliah [not null]
+  judul String [not null]
+  tipeUjian TipeUjian [not null, default: 'KUIS']
+  jenis JenisKuis [not null]
+  deskripsi String
+  bobotNilai Float [not null, default: 100]
+  modeLockdown Boolean [not null, default: true]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  kuisRiil Kuis [not null]
+  soal BankKuisSoal [not null]
+}
+
+Table BankKuisSoal {
+  id Int [pk, increment]
+  bankKuisId Int [not null]
+  bankKuis BankKuis [not null]
+  tipeSoal TipeSoal [not null]
+  pertanyaan String [not null]
+  pilihanJawaban Json
+  kunciJawaban String
+  fileUrl String
+  bobotSoal Float [not null, default: 10]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
 }
 
 Table KuisSoal {
@@ -413,6 +516,7 @@ Table KuisSoal {
   pertanyaan String [not null]
   pilihanJawaban Json
   kunciJawaban String
+  fileUrl String
   bobotSoal Float [not null, default: 10]
   createdAt DateTime [default: `now()`, not null]
   updatedAt DateTime [not null]
@@ -623,6 +727,11 @@ Enum StatusPertemuan {
   TERLAKSANA
 }
 
+Enum SkemaPresensi {
+  SINKRONUS
+  ASINKRONUS
+}
+
 Enum JenisMateri {
   DOKUMEN
   LINK
@@ -636,12 +745,17 @@ Enum StatusTugas {
 
 Enum JenisKuis {
   PILIHAN_GANDA
-  ESSAY
+}
+
+Enum TipeUjian {
+  KUIS
+  UTS
+  UAS
 }
 
 Enum TipeSoal {
-  PG
-  ESSAY
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
 }
 
 Enum StatusAttempt {
@@ -734,13 +848,39 @@ Ref: Pertemuan.mengajarId > Mengajar.id [delete: Cascade]
 
 Ref: Materi.pertemuanId > Pertemuan.id [delete: Cascade]
 
+Ref: MateriVideoQuestion.materiId > Materi.id [delete: Cascade]
+
+Ref: MateriVideoProgress.materiId > Materi.id [delete: Cascade]
+
+Ref: MateriVideoProgress.mahasiswaId > Mahasiswa.id [delete: Cascade]
+
+Ref: MateriAkses.materiId > Materi.id [delete: Cascade]
+
+Ref: MateriAkses.mahasiswaId > Mahasiswa.id [delete: Cascade]
+
 Ref: Tugas.pertemuanId > Pertemuan.id [delete: Cascade]
+
+Ref: Tugas.bankTugasId > BankTugas.id [delete: Set Null]
 
 Ref: TugasSubmission.tugasId > Tugas.id [delete: Cascade]
 
 Ref: TugasSubmission.mahasiswaId > Mahasiswa.id [delete: Cascade]
 
+Ref: BankTugas.dosenId > Dosen.id [delete: Cascade]
+
+Ref: BankTugas.matakuliahId > MataKuliah.id [delete: Cascade]
+
 Ref: Kuis.pertemuanId > Pertemuan.id [delete: Cascade]
+
+Ref: Kuis.mengajarId > Mengajar.id [delete: Cascade]
+
+Ref: Kuis.bankKuisId > BankKuis.id [delete: Set Null]
+
+Ref: BankKuis.dosenId > Dosen.id [delete: Cascade]
+
+Ref: BankKuis.matakuliahId > MataKuliah.id [delete: Cascade]
+
+Ref: BankKuisSoal.bankKuisId > BankKuis.id [delete: Cascade]
 
 Ref: KuisSoal.kuisId > Kuis.id [delete: Cascade]
 

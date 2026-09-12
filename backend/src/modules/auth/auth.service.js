@@ -1,4 +1,5 @@
 import { db } from '../../core/database.js';
+import * as driveService from '../drive/drive.service.js';
 import { ApiError } from '../../shared/utils/apiError.js';
 import { signToken } from '../../shared/utils/jwt.js';
 import { comparePassword, hashPassword } from '../../shared/utils/password.js';
@@ -23,8 +24,8 @@ export function userPayload(user) {
     kelasId: user.mahasiswa?.kelasId ?? null,
     nickname: user.nickname,
     avatarUrl: user.avatarUrl,
-    emailAktif: user.emailAktif,
-    noWhatsapp: user.noWhatsapp,
+    email: user.email,
+    noHp: user.noHp,
     statusVerifikasiEmail: user.statusVerifikasiEmail,
     statusVerifikasiWa: user.statusVerifikasiWa,
     googleDriveConnected: user.googleDriveConnected,
@@ -64,37 +65,52 @@ async function login({ username, password }) {
  * Langkah login pertama kali (blueprint §6.0b):
  * simpan email Gmail + WA + password baru, lalu generate & "kirim" OTP ke dua kanal.
  */
-async function lengkapiProfil(userId, { email, noWhatsapp, passwordBaru }) {
-  if (!/^[^\s@]+@gmail\.com$/i.test(email)) {
-    throw ApiError.badRequest('Email wajib menggunakan domain @gmail.com untuk integrasi Google Drive');
+async function lengkapiProfil(userId, { email, noHp, passwordBaru }) {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    throw ApiError.badRequest('Format email tidak valid');
   }
-  if (!/^\+?[0-9]{9,15}$/.test(noWhatsapp.replace(/[\s-]/g, ''))) {
+  if (!/^\+?[0-9]{9,15}$/.test(noHp.replace(/[\s-]/g, ''))) {
     throw ApiError.badRequest('Format nomor WhatsApp tidak valid');
   }
 
-  const cleanWa = noWhatsapp.replace(/[\s-]/g, '');
+  const cleanWa = noHp.replace(/[\s-]/g, '');
   const existing = await db.user.findFirst({
     where: { 
       OR: [
-        { emailAktif: email.toLowerCase() },
-        { noWhatsapp: cleanWa }
+        { email: email.toLowerCase() },
+        { noHp: cleanWa }
       ],
       id: { not: userId } 
     },
   });
   if (existing) {
-    if (existing.emailAktif === email.toLowerCase()) throw ApiError.conflict('Email sudah dipakai akun lain');
-    if (existing.noWhatsapp === cleanWa) throw ApiError.conflict('Nomor WhatsApp sudah digunakan oleh akun lain');
+    if (existing.email === email.toLowerCase()) throw ApiError.conflict('Email sudah dipakai akun lain');
+    if (existing.noHp === cleanWa) throw ApiError.conflict('Nomor WhatsApp sudah digunakan oleh akun lain');
   }
 
-  const user = await db.user.update({
+  const currentUser = await db.user.findUnique({ where: { id: userId } });
+  const isEmailUnchanged = currentUser.email === email.toLowerCase();
+  const isWaUnchanged = currentUser.noHp === cleanWa;
+  const isVerified = currentUser.statusVerifikasiEmail === 'TERVERIFIKASI' && currentUser.statusVerifikasiWa === 'TERVERIFIKASI';
+
+  let user = await db.user.update({
     where: { id: userId },
     data: {
-      emailAktif: email.toLowerCase(),
-      noWhatsapp: noWhatsapp.replace(/[\s-]/g, ''),
-      password: await hashPassword(passwordBaru),
+      email: email.toLowerCase(),
+      noHp: cleanWa,
+      ...(passwordBaru ? { password: await hashPassword(passwordBaru) } : {}),
     },
+    include: {
+      dosen: { select: { id: true, nidn: true, nama: true } },
+      mahasiswa: { select: { id: true, nim: true, nama: true, kelasId: true, prodiId: true } },
+      prodiKelola: { select: { id: true, namaProdi: true } },
+    }
   });
+
+  if (isEmailUnchanged && isWaUnchanged && isVerified) {
+    user = await maybeFinalize(user);
+    return { pesan: 'Password dan profil berhasil diperbarui', user: user.wajibLengkapiProfil === false ? userPayload(user) : undefined };
+  }
 
   const devCodes = await issueOtpsFor(user);
   return { pesan: 'Kode OTP telah dikirim ke email dan WhatsApp Anda', ...(env.otpDevMode ? { devCodes } : {}) };
@@ -119,8 +135,8 @@ async function issueOtpsFor(user) {
     ],
   });
 
-  await notificationStub.sendEmailOtp(user.emailAktif, kodeEmail);
-  await notificationStub.sendWhatsappOtp(user.noWhatsapp, kodeWa);
+  await notificationStub.sendEmailOtp(user.email, kodeEmail);
+  await notificationStub.sendWhatsappOtp(user.noHp, kodeWa);
 
   return env.otpDevMode ? { email: kodeEmail, whatsapp: kodeWa } : undefined;
 }
@@ -157,18 +173,32 @@ async function verifyOtp(userId, jenis, kode) {
 
 async function resendOtp(userId, jenis) {
   const user = await db.user.findUnique({ where: { id: userId } });
-  if (!user?.emailAktif || !user?.noWhatsapp) {
+  if (!user?.email || !user?.noHp) {
     throw ApiError.badRequest('Lengkapi profil terlebih dahulu sebelum meminta ulang OTP');
   }
   const devCodes = await issueOtpsFor(user);
   return { pesan: `OTP ${jenis.toLowerCase()} baru telah dikirim`, ...(env.otpDevMode ? { devCodes } : {}) };
 }
 
-/** Stub OAuth2 Google Drive (blueprint §6.0c). */
+/** OAuth2 Google Drive. */
 async function connectDrive(userId) {
-  let user = await db.user.update({
+  const oauth2Client = driveService.getOAuth2Client();
+  if (!oauth2Client) {
+    await db.user.update({
+      where: { id: userId },
+      data: { googleDriveConnected: true, wajibLengkapiProfil: false }
+    });
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    return { url: `${frontendUrl}/lengkapi-profil?drive_simulated_success=true` };
+  }
+  const url = driveService.generateAuthUrl(userId);
+  return { url };
+}
+
+export async function handleGoogleCallback(code, state) {
+  const userId = await driveService.handleGoogleCallback(code, state);
+  let user = await db.user.findUnique({
     where: { id: userId },
-    data: { googleDriveConnected: true },
     include: {
       dosen: { select: { id: true, nidn: true, nama: true } },
       mahasiswa: { select: { id: true, nim: true, nama: true, kelasId: true, prodiId: true } },
@@ -177,7 +207,7 @@ async function connectDrive(userId) {
   });
   await notificationStub.connectGoogleDrive(user);
   user = await maybeFinalize(user);
-  return { user: userPayload(user) };
+  return userId;
 }
 
 /** Selesaikan onboarding bila kedua verifikasi + drive terpenuhi (§6.0b-8). */
@@ -206,8 +236,17 @@ async function changePassword(userId, { passwordLama, passwordBaru }) {
   if (!user || !(await comparePassword(passwordLama, user.password))) {
     throw ApiError.badRequest('Password lama tidak sesuai');
   }
-  await db.user.update({ where: { id: userId }, data: { password: await hashPassword(passwordBaru) } });
-  return { pesan: 'Password berhasil diubah' };
+  let updated = await db.user.update({ 
+    where: { id: userId }, 
+    data: { password: await hashPassword(passwordBaru) },
+    include: {
+      dosen: { select: { id: true, nidn: true, nama: true } },
+      mahasiswa: { select: { id: true, nim: true, nama: true, kelasId: true, prodiId: true } },
+      prodiKelola: { select: { id: true, namaProdi: true } },
+    }
+  });
+  updated = await maybeFinalize(updated);
+  return { pesan: 'Password berhasil diubah', user: userPayload(updated) };
 }
 
 export const authService = {
@@ -216,6 +255,7 @@ export const authService = {
   verifyOtp,
   resendOtp,
   connectDrive,
+  handleGoogleCallback,
   changePassword,
   me: async (userId) => {
     const user = await findUserFull(userId);

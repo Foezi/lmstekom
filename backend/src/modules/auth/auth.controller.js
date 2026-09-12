@@ -1,6 +1,7 @@
 import { authService, userPayload } from './auth.service.js';
 import { asyncHandler } from '../../shared/utils/apiError.js';
 import { logActivity } from '../../shared/utils/activityLog.js';
+import { env } from '../../core/env.js';
 
 const ip = (req) => req.ip || req.socket?.remoteAddress || null;
 
@@ -37,7 +38,28 @@ export const resendOtp = asyncHandler(async (req, res) => {
 export const connectDrive = asyncHandler(async (req, res) => {
   const result = await authService.connectDrive(req.user.id);
   await logActivity({ userId: req.user.id, aktivitas: 'HUBUNGKAN_GDRIVE', modul: 'AUTH', ipAddress: ip(req) });
-  res.json({ data: result });
+  res.json({ data: result }); // result = { url: ... }
+});
+
+export const driveCallback = asyncHandler(async (req, res) => {
+  console.log('[DEBUG] Masuk ke driveCallback. Query:', req.query);
+  const { code, state, error } = req.query;
+  
+  if (error) {
+    return res.redirect(`${env.frontendUrl}/lengkapi-profil?drive_error=true`);
+  }
+  
+  if (!code || !state) {
+    return res.redirect(`${env.frontendUrl}/lengkapi-profil?drive_error=true`);
+  }
+  
+  try {
+    const userId = await authService.handleGoogleCallback(code, state);
+    res.redirect(`${env.frontendUrl}/lengkapi-profil?drive_success=true&userId=${userId}`);
+  } catch (err) {
+    console.error('Drive Callback Error:', err);
+    res.redirect(`${env.frontendUrl}/lengkapi-profil?drive_error=true`);
+  }
 });
 
 export const changePassword = asyncHandler(async (req, res) => {

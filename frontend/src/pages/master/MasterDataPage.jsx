@@ -69,6 +69,7 @@ export function MasterDataPage({ entity }) {
   const [filters, setFilters] = useState(initialFilters);
   const [prodis, setProdis] = useState([]);
   const [tahunAkademiks, setTahunAkademiks] = useState([]);
+  const [resettingPassword, setResettingPassword] = useState(null);
 
   useEffect(() => {
     setFilters(initialFilters);
@@ -87,8 +88,8 @@ export function MasterDataPage({ entity }) {
       <SidebarMenu currentGroup={currentGroup} />
 
       {/* KANAN: Tabel Data Utama */}
-      <div className="flex-1 w-full bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm overflow-hidden min-h-[500px]">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+      <div className="flex-1 w-full space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">{config.title}</h1>
         </div>
 
@@ -134,6 +135,13 @@ export function MasterDataPage({ entity }) {
                         <button title="Kelola Kalender Akademik" className="text-amber-600 hover:bg-amber-50 p-1.5 rounded-lg transition-colors" onClick={() => navigate(`/kalender-akademik?tahunAkademikId=${r.id}`)}>
                           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                        </button>
+                      )}
+                      {['mahasiswa', 'dosen'].includes(entity) && (
+                        <button title="Reset Password" className="text-orange-500 hover:bg-orange-50 p-1.5 rounded-lg transition-colors" onClick={() => setResettingPassword(r)}>
+                          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                           </svg>
                         </button>
                       )}
@@ -224,6 +232,22 @@ export function MasterDataPage({ entity }) {
             setRefreshKey((k) => k + 1);
           } catch (err) {
             setDeleting(null);
+            toast.error(apiError(err));
+          }
+        }}
+      />
+
+      <ConfirmDialog
+        open={Boolean(resettingPassword)}
+        message={`Reset password ke default untuk ${config.title.toLowerCase()} "${resettingPassword ? (resettingPassword.nama || resettingPassword.nim || resettingPassword.nidn) : ''}"? Password akan dikembalikan ke format bawaan (NIM/NIDN + @poltek).`}
+        onCancel={() => setResettingPassword(null)}
+        onConfirm={async () => {
+          try {
+            await api.resetPassword(resettingPassword.id);
+            setResettingPassword(null);
+            toast.success('Password berhasil di-reset!');
+          } catch (err) {
+            setResettingPassword(null);
             toast.error(apiError(err));
           }
         }}

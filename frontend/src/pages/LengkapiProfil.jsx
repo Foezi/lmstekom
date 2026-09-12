@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext.jsx';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Alert, Button, Card, Input } from '../components/ui.jsx';
 import { apiError } from '../api/client.js';
-import { connectDrive, lengkapiProfil, resendOtp, verifyOtp } from '../api/endpoints.js';
+import { connectDrive, lengkapiProfil, resendOtp, verifyOtp, fetchMe } from '../api/endpoints.js';
 
 /**
  * Onboarding login pertama kali (blueprint §6.0b):
@@ -10,25 +11,63 @@ import { connectDrive, lengkapiProfil, resendOtp, verifyOtp } from '../api/endpo
  */
 export default function LengkapiProfil() {
   const { user, updateUser } = useAuth();
-  const [form, setForm] = useState({ email: '', noWhatsapp: '', passwordBaru: '' });
+  const [form, setForm] = useState({ email: '', noHp: '', passwordBaru: '', passwordLama: '' });
   const [otp, setOtp] = useState({ email: '', whatsapp: '' });
   const [devCodes, setDevCodes] = useState(null);
   const [error, setError] = useState(null);
   const [info, setInfo] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  const step =
-    !user.emailAktif ? 1 : user.statusVerifikasiEmail !== 'TERVERIFIKASI' || user.statusVerifikasiWa !== 'TERVERIFIKASI' ? 2 : user.googleDriveConnected ? 4 : 3;
+  useEffect(() => {
+    // Cek query parameters dari Google OAuth callback
+    const driveSuccess = searchParams.get('drive_success');
+    const driveSimulated = searchParams.get('drive_simulated_success');
+    const driveError = searchParams.get('drive_error');
+
+    if (driveError) {
+      setError('Gagal menghubungkan Google Drive. Silakan coba lagi.');
+    } else if (driveSuccess || driveSimulated) {
+      setInfo(driveSimulated ? 'Simulasi Google Drive berhasil dihubungkan.' : 'Google Drive berhasil dihubungkan.');
+      // Refresh current user data
+      fetchMe().then(result => updateUser(result)).catch(console.error);
+    }
+  }, [searchParams, updateUser]);
+
+  useEffect(() => {
+    // Jika user sudah melengkapi profil, arahkan ke dashboard setelah 2 detik
+    if (user && !user.wajibLengkapiProfil) {
+      const timer = setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [user?.wajibLengkapiProfil, navigate]);
+
+  const step = user?.statusVerifikasiEmail === 'TERVERIFIKASI' && user?.statusVerifikasiWa === 'TERVERIFIKASI' 
+    ? (user?.googleDriveConnected ? 4 : 3) 
+    : 2;
 
   const submitProfil = async (e) => {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const result = await lengkapiProfil(form);
-      setDevCodes(result.devCodes ?? null);
-      updateUser({ ...user, emailAktif: form.email, noWhatsapp: form.noWhatsapp });
-      setInfo('Kode OTP dikirim ke email & WhatsApp Anda.');
+      const payload = {
+        email: form.email || user.email,
+        noHp: form.noHp || user.noHp,
+        passwordBaru: form.passwordBaru,
+      };
+      const result = await lengkapiProfil(payload);
+      if (result.user) {
+        updateUser(result.user);
+        setInfo(result.pesan);
+      } else {
+        setDevCodes(result.devCodes ?? null);
+        updateUser({ ...user, email: payload.email, noHp: payload.noHp });
+        setInfo('Kode OTP dikirim ke email & WhatsApp Anda.');
+      }
     } catch (err) {
       setError(apiError(err));
     } finally {
@@ -70,11 +109,11 @@ export default function LengkapiProfil() {
     setError(null);
     try {
       const result = await connectDrive();
-      updateUser(result.user);
-      setInfo('Google Drive berhasil dihubungkan.');
+      if (result.url) {
+        window.location.href = result.url; // Redirect ke Google Consent Screen atau simulasi
+      }
     } catch (err) {
       setError(apiError(err));
-    } finally {
       setBusy(false);
     }
   };
@@ -107,19 +146,19 @@ export default function LengkapiProfil() {
       <Card title={`Langkah 1 · Data Profil ${step === 1 ? '(sedang)' : step > 1 ? '✓' : ''}`}>
         <form onSubmit={submitProfil} className="space-y-4">
           <Input
-            label="Email aktif (wajib Gmail — untuk integrasi Google Drive)"
+            label="Email aktif (untuk integrasi Google Drive)"
             type="email"
             placeholder="nama@gmail.com"
-            value={user?.emailAktif || form.email}
-            disabled={Boolean(user?.emailAktif)}
+            value={user?.email || form.email}
+            disabled={Boolean(user?.email)}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
           />
           <Input
             label="Nomor WhatsApp aktif"
             placeholder="08xxxxxxxxxx"
-            value={user?.noWhatsapp || form.noWhatsapp}
-            disabled={Boolean(user?.noWhatsapp)}
-            onChange={(e) => setForm({ ...form, noWhatsapp: e.target.value })}
+            value={user?.noHp || form.noHp}
+            disabled={Boolean(user?.noHp)}
+            onChange={(e) => setForm({ ...form, noHp: e.target.value })}
           />
           <Input
             label="Password baru (min. 8 karakter)"
@@ -129,31 +168,29 @@ export default function LengkapiProfil() {
             value={form.passwordBaru}
             onChange={(e) => setForm({ ...form, passwordBaru: e.target.value })}
           />
-          {!user?.emailAktif && (
-            <Button type="submit" disabled={busy}>
-              {busy ? 'Mengirim OTP...' : 'Simpan & Kirim OTP'}
-            </Button>
-          )}
+          <Button type="submit" disabled={busy}>
+            {busy ? 'Menyimpan...' : user?.email ? 'Perbarui Data' : 'Simpan & Kirim OTP'}
+          </Button>
         </form>
       </Card>
 
       <Card title={`Langkah 2 · Verifikasi Email & WhatsApp ${step > 2 ? '✓' : step === 2 ? '(sedang)' : ''}`}>
         <div className="grid gap-4 sm:grid-cols-2">
           <OtpBox
-            label={`OTP Email (${user?.emailAktif || '—'})`}
+            label={`OTP Email (${user?.email || '—'})`}
             value={otp.email}
             verified={user?.statusVerifikasiEmail === 'TERVERIFIKASI'}
-            disabled={!user?.emailAktif}
+            disabled={!user?.email}
             onChange={(v) => setOtp((o) => ({ ...o, email: v }))}
             onVerify={() => doVerify('EMAIL')}
             onResend={() => doResend('EMAIL')}
             busy={busy}
           />
           <OtpBox
-            label={`OTP WhatsApp (${user?.noWhatsapp || '—'})`}
+            label={`OTP WhatsApp (${user?.noHp || '—'})`}
             value={otp.whatsapp}
             verified={user?.statusVerifikasiWa === 'TERVERIFIKASI'}
-            disabled={!user?.noWhatsapp}
+            disabled={!user?.noHp}
             onChange={(v) => setOtp((o) => ({ ...o, whatsapp: v }))}
             onVerify={() => doVerify('WHATSAPP')}
             onResend={() => doResend('WHATSAPP')}
@@ -178,9 +215,11 @@ export default function LengkapiProfil() {
         </div>
       </Card>
 
+
+
       {!user?.wajibLengkapiProfil && (
         <Alert type="success">
-          Semua langkah selesai! Anda dapat mulai menggunakan dashboard.
+          Semua langkah selesai! Anda akan dialihkan ke dashboard dalam beberapa detik...
         </Alert>
       )}
     </div>

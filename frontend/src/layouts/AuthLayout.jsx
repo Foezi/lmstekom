@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom';
+import logoPoltek from '../assets/logo-poltek.jpg';
 
 export function AuthLayout({ children }) {
   return (
@@ -15,8 +16,8 @@ export function AuthLayout({ children }) {
         {/* Branding/Hero Side */}
         <div className="hidden md:flex flex-col justify-between w-1/2 p-12 bg-gradient-to-b from-white/10 to-transparent border-r border-white/10 relative overflow-hidden">
            <div className="relative z-10">
-             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-8 hover-float">
-               <span className="text-4xl font-black text-sky-500 tracking-tighter">PS</span>
+             <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-lg mb-8 hover-float p-2">
+               <img src={logoPoltek} alt="Logo" className="w-full h-full object-contain" />
              </div>
              <h1 className="text-4xl font-extrabold text-white mb-3 leading-tight tracking-tight">
                Politeknik Sukabumi
@@ -38,8 +39,8 @@ export function AuthLayout({ children }) {
         <div className="w-full md:w-1/2 p-8 md:p-14 bg-white flex flex-col justify-center relative">
           {/* Mobile Branding (only visible on small screens) */}
           <div className="md:hidden flex items-center gap-3 mb-8 justify-center">
-             <div className="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center shadow-md">
-               <span className="text-xl font-black text-white tracking-tighter">PS</span>
+             <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center shadow-md p-1.5">
+               <img src={logoPoltek} alt="Logo" className="w-full h-full object-contain" />
              </div>
              <div>
                 <h1 className="text-xl font-bold text-slate-800">LMS Polteksmi</h1>

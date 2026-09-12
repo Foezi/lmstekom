@@ -21,7 +21,7 @@ export const mahasiswaConfig = {
   model: 'mahasiswa',
   label: 'Mahasiswa',
   schema: mahasiswaSchema,
-  searchFields: ['nim', 'nama', 'email'],
+  searchFields: ['nim', 'nama', 'user.email', 'user.noHp'],
   filters: [
     { name: 'prodiId', field: 'prodiId', parse: (v) => (v ? parseInt(v, 10) : undefined) },
     { name: 'kelasId', field: 'kelasId', parse: (v) => (v ? parseInt(v, 10) : undefined) },
@@ -32,12 +32,14 @@ export const mahasiswaConfig = {
     prodi: { select: { id: true, kodeProdi: true, namaProdi: true } },
     kelas: { select: { id: true, namaKelas: true, angkatan: true, tahunKurikulumId: true, tahunKurikulum: { select: { tahun: true } } } },
     dosenWali: { select: { id: true, nidn: true, nama: true } },
+    user: { select: { email: true, noHp: true } }
   },
   toDto: (m) => ({
     id: m.id,
     nim: m.nim,
     nama: m.nama,
-    email: m.email,
+    email: m.user?.email,
+    noHp: m.user?.noHp,
     status: m.status,
     prodiId: m.prodiId,
     prodiKode: m.prodi?.kodeProdi,
@@ -53,8 +55,22 @@ export const mahasiswaConfig = {
     jalurPendaftaran: m.jalurPendaftaran,
     dosenWaliId: m.dosenWaliId,
     dosenWaliNama: m.dosenWali?.nama,
-    status: m.status,
   }),
+  mapToPrisma: (d) => {
+    return {
+      nim: d.nim,
+      nama: d.nama,
+      kelasId: d.kelasId,
+      prodiId: d.prodiId,
+      jenisKelamin: d.jenisKelamin,
+      tempatLahir: d.tempatLahir,
+      tanggalLahir: d.tanggalLahir,
+      periodeMasuk: d.periodeMasuk,
+      jalurPendaftaran: d.jalurPendaftaran,
+      status: d.status,
+      dosenWaliId: d.dosenWaliId
+    };
+  },
   rowLabel: (m) => `${m.nim} - ${m.nama}`,
   exportColumns: [
     exp('nim', 'nim'),
@@ -86,27 +102,47 @@ export const mahasiswaConfig = {
       if (target !== user.prodiId) throw ApiError.forbidden('Anda hanya dapat mengelola mahasiswa pada program studi Anda');
     }
   },
-  afterWrite: async (record, previous, user, client) => {
+  afterWrite: async (record, previous, user, client, originalData) => {
     if (!previous) {
       await client.user.upsert({
         where: { username: record.nim },
-        update: { mahasiswaId: record.id },
+        update: { 
+          mahasiswaId: record.id,
+          email: originalData.email || undefined,
+          noHp: originalData.noHp || undefined
+        },
         create: {
           username: record.nim,
           password: await hashDefault(record.nim),
           role: 'MAHASISWA',
           mahasiswaId: record.id,
           wajibLengkapiProfil: true,
+          email: originalData.email || null,
+          noHp: originalData.noHp || null
         },
       });
-    } else if (previous.nim !== record.nim) {
-      const oldUser = await client.user.findUnique({ where: { username: previous.nim } });
-      if (oldUser) {
-        try {
-          await client.user.update({ where: { id: oldUser.id }, data: { username: record.nim } });
-        } catch {
-          throw ApiError.conflict(`Username ${record.nim} sudah digunakan akun lain`);
+    } else {
+      let targetUser = await client.user.findUnique({ where: { mahasiswaId: record.id } });
+      if (previous.nim !== record.nim) {
+        if (targetUser) {
+          try {
+            await client.user.update({
+              where: { id: targetUser.id },
+              data: { username: record.nim },
+            });
+          } catch (err) {
+            throw ApiError.conflict(`Username ${record.nim} sudah digunakan akun lain`);
+          }
         }
+      }
+      if (targetUser && (originalData.email !== undefined || originalData.noHp !== undefined)) {
+        await client.user.update({
+          where: { id: targetUser.id },
+          data: {
+            email: originalData.email !== undefined ? originalData.email : undefined,
+            noHp: originalData.noHp !== undefined ? originalData.noHp : undefined
+          }
+        });
       }
     }
   },

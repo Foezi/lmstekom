@@ -22,6 +22,8 @@ import kalenderAkademikRoutes from './modules/master/kalender-akademik/kalender-
 
 import jadwalRoutes from './modules/perkuliahan/jadwal/jadwal.routes.js';
 import materiRoutes from './modules/perkuliahan/materi/materi.routes.js';
+import ujianRoutes from './modules/perkuliahan/ujian/ujian.routes.js';
+import bankRoutes from './modules/perkuliahan/bank/bank.routes.js';
 import diskusiRoutes from './modules/perkuliahan/diskusi/diskusi.routes.js';
 import presensiRoutes from './modules/perkuliahan/presensi/presensi.routes.js';
 import nilaiRoutes from './modules/perkuliahan/nilai/nilai.routes.js';
@@ -64,6 +66,8 @@ export function createApp() {
 
   app.use('/api/jadwal', jadwalRoutes);
   app.use('/api/materi', materiRoutes);
+  app.use('/api/ujian', ujianRoutes);
+  app.use('/api/bank-tugas-kuis', bankRoutes);
   app.use('/api/diskusi', diskusiRoutes);
   app.use('/api/presensi', presensiRoutes);
   app.use('/api/nilai', nilaiRoutes);

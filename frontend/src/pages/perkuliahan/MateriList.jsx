@@ -57,54 +57,56 @@ export default function MateriList() {
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col md:flex-row gap-4 items-center">
-        <form onSubmit={handleSearch} className="flex-1 w-full relative">
-          <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Cari nama mata kuliah..."
-            className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </form>
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-orange-500 overflow-hidden flex flex-col min-h-[500px]">
+        {/* Search & Filters */}
+        <div className="p-4 md:p-6 border-b border-orange-100 flex flex-col md:flex-row gap-4 items-center bg-white">
+          <form onSubmit={handleSearch} className="flex-1 w-full relative">
+            <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Cari nama mata kuliah..."
+              className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 outline-none transition-all"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </form>
 
-        <div className="flex gap-2 w-full md:w-auto">
-          <select 
-            className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none"
-            value={filterTA}
-            onChange={(e) => setFilterTA(e.target.value)}
-          >
-            <option value="">Semua Tahun Akademik</option>
-            {tahunAkademik.map(ta => (
-              <option key={ta.id} value={ta.id}>{ta.nama}</option>
-            ))}
-          </select>
+          <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+            <select 
+              className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              value={filterTA}
+              onChange={(e) => setFilterTA(e.target.value)}
+            >
+              <option value="">Semua Tahun Akademik</option>
+              {tahunAkademik.map(ta => (
+                <option key={ta.id} value={ta.id}>{ta.nama}</option>
+              ))}
+            </select>
 
-          <select 
-            className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none"
-            value={filterKur}
-            onChange={(e) => setFilterKur(e.target.value)}
-          >
-            <option value="">Semua Kurikulum</option>
-            {kurikulum.map(kur => (
-              <option key={kur.id} value={kur.id}>{kur.tahun}</option>
-            ))}
-          </select>
+            <select 
+              className="px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+              value={filterKur}
+              onChange={(e) => setFilterKur(e.target.value)}
+            >
+              <option value="">Semua Kurikulum</option>
+              {kurikulum.map(kur => (
+                <option key={kur.id} value={kur.id}>{kur.tahun}</option>
+              ))}
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden">
+        {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="py-3 px-4 font-semibold text-slate-600 text-sm">Kode - Mata Kuliah</th>
-                <th className="py-3 px-4 font-semibold text-slate-600 text-sm">Kelas</th>
-                <th className="py-3 px-4 font-semibold text-slate-600 text-sm">Dosen</th>
-                <th className="py-3 px-4 font-semibold text-slate-600 text-sm">T.A. & Kurikulum</th>
-                <th className="py-3 px-4 font-semibold text-slate-600 text-sm">Jadwal</th>
-                <th className="py-3 px-4 font-semibold text-slate-600 text-sm text-center">Aksi</th>
+              <tr className="bg-slate-50 border-b border-slate-200">
+                <th className="py-4 px-6 font-semibold text-slate-600 text-sm whitespace-nowrap">Kode - Mata Kuliah</th>
+                <th className="py-4 px-6 font-semibold text-slate-600 text-sm whitespace-nowrap">Kelas</th>
+                <th className="py-4 px-6 font-semibold text-slate-600 text-sm whitespace-nowrap">Dosen</th>
+                <th className="py-4 px-6 font-semibold text-slate-600 text-sm whitespace-nowrap">T.A. & Kurikulum</th>
+                <th className="py-4 px-6 font-semibold text-slate-600 text-sm whitespace-nowrap">Jadwal</th>
+                <th className="py-4 px-6 font-semibold text-slate-600 text-sm text-center whitespace-nowrap">Aksi</th>
               </tr>
             </thead>
             <tbody>

@@ -14,8 +14,8 @@ const loginSchema = z.object({
 
 const lengkapiProfilSchema = z.object({
   email: z.string().email('Format email tidak valid'),
-  noWhatsapp: z.string().min(9).max(20),
-  passwordBaru: z.string().min(8, 'Password baru minimal 8 karakter'),
+  noHp: z.string().min(9).max(20),
+  passwordBaru: z.string().min(8, 'Password baru minimal 8 karakter').optional().or(z.literal('')),
 });
 
 const verifyOtpSchema = z.object({
@@ -33,6 +33,7 @@ const changePasswordSchema = z.object({
 });
 
 router.post('/login', validateBody(loginSchema), auth.login);
+router.get('/drive/callback', auth.driveCallback);
 
 // Semua route di bawah ini butuh token
 router.use(authenticate);

@@ -97,16 +97,18 @@ export default function PresensiPage() {
       <SidebarMenu currentGroup="Perkuliahan" />
       
       <div className="flex-1 w-full space-y-6">
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <div className="flex flex-col gap-4 mb-6 border-b pb-6">
-            <div>
-              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
-                <BarChart3 className="w-6 h-6 text-sky-600" /> Rekap Kehadiran Mata Kuliah
-              </h2>
-              <p className="text-sm text-slate-500 mt-1">Laporan persentase kehadiran seluruh mahasiswa dalam satu mata kuliah</p>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
+              <BarChart3 className="w-6 h-6 text-sky-600" /> Rekap Kehadiran Mata Kuliah
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">Laporan persentase kehadiran seluruh mahasiswa dalam satu mata kuliah</p>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-orange-500 overflow-hidden flex flex-col min-h-[500px]">
+          <div className="p-4 md:p-6 border-b border-orange-100 flex flex-col gap-4 bg-white">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
                 <label className="text-xs font-semibold text-slate-600 block mb-1">Program Studi<span className="text-red-500 ml-1">*</span></label>
                 <select
@@ -154,20 +156,21 @@ export default function PresensiPage() {
             </div>
           </div>
 
-          {selectedMk && selectedTa && (
-            <div className="flex flex-wrap gap-4 mb-8">
-              <div className="bg-sky-50 border border-sky-100 px-4 py-3 rounded-lg flex items-center gap-3 w-full md:w-auto md:min-w-[300px]">
-                <BookOpen className="w-6 h-6 text-sky-600" />
-                <div>
-                  <p className="text-[10px] uppercase font-bold text-sky-600 tracking-wider">Mata Kuliah Dipilih</p>
-                  <p className="text-sm font-semibold text-slate-800">{selectedMk.namaMk} ({selectedMk.kodeMk})</p>
+          <div className="p-4 md:p-6 flex flex-col gap-6">
+            {selectedMk && selectedTa && (
+              <div className="flex flex-wrap gap-4">
+                <div className="bg-sky-50 border border-sky-100 px-4 py-3 rounded-lg flex items-center gap-3 w-full md:w-auto md:min-w-[300px]">
+                  <BookOpen className="w-6 h-6 text-sky-600" />
+                  <div>
+                    <p className="text-[10px] uppercase font-bold text-sky-600 tracking-wider">Mata Kuliah Dipilih</p>
+                    <p className="text-sm font-semibold text-slate-800">{selectedMk.namaMk} ({selectedMk.kodeMk})</p>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Grafik Batang Horizontal (Tailwind) */}
-          <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
+            {/* Grafik Batang Horizontal (Tailwind) */}
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6">
             <h3 className="font-bold text-slate-800 mb-6">Grafik Persentase Kehadiran</h3>
             
             {loadingRekap ? (
@@ -220,6 +223,7 @@ export default function PresensiPage() {
                 ))}
               </div>
             )}
+          </div>
           </div>
         </div>
       </div>

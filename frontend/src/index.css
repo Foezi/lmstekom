@@ -6,6 +6,8 @@
   --secondary: #f97316;
   --glass-bg: rgba(255, 255, 255, 0.1);
   --glass-border: rgba(255, 255, 255, 0.2);
+}
+
 body {
   font-family: 'Outfit', sans-serif;
   -webkit-font-smoothing: antialiased;

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { api, getStoredToken } from '../../api/client.js';
 import { useAuth } from '../../context/AuthContext.jsx';
-import { SidebarMenu } from '../../components/SidebarMenu.jsx';
 import { Send, Users, User, Plus, MessageCircle, Info, Menu, X } from 'lucide-react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
@@ -222,9 +221,7 @@ export default function RuangDiskusi() {
 
   return (
     <div className="flex flex-col md:flex-row gap-6 items-start h-[calc(100vh-8rem)]">
-      <SidebarMenu currentGroup="Perkuliahan" />
-      
-      <div className="flex-1 w-full bg-white border border-slate-200 rounded-xl shadow-sm flex overflow-hidden h-full relative">
+      <div className="flex-1 w-full bg-white border border-slate-200 border-t-4 border-t-orange-500 rounded-xl shadow-sm flex overflow-hidden h-full relative">
         
         {/* Overlay saat drawer terbuka di mobile */}
         {isDrawerOpen && (
@@ -236,7 +233,7 @@ export default function RuangDiskusi() {
 
         {/* Kolom Kiri: Daftar Chat (Drawer di Mobile) */}
         <div className={`w-80 md:w-1/3 absolute md:relative z-20 h-full border-r border-slate-200 bg-slate-50 flex flex-col overflow-hidden transition-transform duration-300 ${isDrawerOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-          <div className="p-4 border-b border-slate-200 bg-white flex justify-between items-center">
+          <div className="p-4 border-b border-orange-100 bg-white flex justify-between items-center">
             <div>
               <h2 className="font-bold text-slate-800">Ruang Diskusi</h2>
               <p className="text-xs text-slate-500">Pesan personal & grup</p>
@@ -285,7 +282,7 @@ export default function RuangDiskusi() {
           {selectedRoom ? (
             <>
               {/* Header Chat */}
-              <div className="bg-white p-4 border-b border-slate-200 flex justify-between items-center shadow-sm z-0">
+              <div className="bg-white p-4 border-b border-orange-100 flex justify-between items-center shadow-sm z-0">
                 <div className="flex items-center gap-3">
                   <button 
                     onClick={() => setIsDrawerOpen(true)}
@@ -345,7 +342,7 @@ export default function RuangDiskusi() {
               </div>
               
               {/* Input Box */}
-              <div className="p-4 bg-white border-t border-slate-200">
+              <div className="p-4 bg-white border-t border-orange-100">
                 <form onSubmit={handleSendMessage} className="flex gap-2">
                   <input
                     type="text"

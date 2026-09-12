@@ -97,8 +97,8 @@ model User {
   nickname              String?
   avatarUrl             String?          @db.LongText
   
-  emailAktif            String?
-  noWhatsapp            String?
+  email                 String?
+  noHp                  String?
   statusVerifikasiEmail VerifikasiStatus @default(BELUM)
   statusVerifikasiWa    VerifikasiStatus @default(BELUM)
   googleDriveConnected  Boolean          @default(false)
@@ -241,8 +241,6 @@ model Dosen {
   id        Int         @id @default(autoincrement())
   nidn      String      @unique
   nama      String
-  email     String?
-  noHp      String?
   status    StatusAktif @default(AKTIF)
   prodiId   Int?
   prodi     Prodi?      @relation(fields: [prodiId], references: [id])
@@ -254,6 +252,8 @@ model Dosen {
   jadwals       Jadwal[]
   mengajars     Mengajar[]
   mahasiswaBimbingan Mahasiswa[] @relation("DosenWali")
+  bankTugas     BankTugas[]
+  bankKuis      BankKuis[]
 
   @@index([prodiId])
 }
@@ -266,7 +266,6 @@ model Mahasiswa {
   kelas     Kelas       @relation(fields: [kelasId], references: [id])
   prodiId   Int
   prodi     Prodi       @relation(fields: [prodiId], references: [id])
-  email            String?
   jenisKelamin     JenisKelamin?
   tempatLahir      String?
   tanggalLahir     DateTime?
@@ -286,6 +285,8 @@ model Mahasiswa {
   nilaiAkhirs      NilaiAkhir[]
   presensis        Presensi[]
   riwayatStatus    RiwayatStatusMahasiswa[]
+  videoProgresses  MateriVideoProgress[]
+  materiAkses      MateriAkses[]
 
   @@index([kelasId])
   @@index([prodiId])
@@ -351,6 +352,8 @@ model MataKuliah {
   updatedAt DateTime   @updatedAt
   jadwals   Jadwal[]
   mengajars Mengajar[]
+  bankTugas BankTugas[]
+  bankKuis  BankKuis[]
 
   @@unique([prodiId, kodeMk])
   @@index([prodiId])
@@ -410,6 +413,7 @@ model Mengajar {
 
   pertemuan  Pertemuan[]
   nilaiAkhir NilaiAkhir[]
+  kuis       Kuis[]
 }
 
 enum StatusPertemuan {
@@ -417,6 +421,11 @@ enum StatusPertemuan {
   MULAI
   SELESAI
   TERLAKSANA
+}
+
+enum SkemaPresensi {
+  SINKRONUS
+  ASINKRONUS
 }
 
 model Pertemuan {
@@ -437,7 +446,8 @@ model Pertemuan {
   rencanaMateri   String? @db.Text
   realisasiMateri String? @db.Text
 
-  status     StatusPertemuan @default(BELUM)
+  status        StatusPertemuan @default(BELUM)
+  skemaPresensi SkemaPresensi   @default(SINKRONUS)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -471,6 +481,51 @@ model Materi {
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   diskusis  Diskusi[]
+
+  videoQuestions  MateriVideoQuestion[]
+  videoProgresses MateriVideoProgress[]
+  materiAkses     MateriAkses[]
+}
+
+model MateriVideoQuestion {
+  id          Int      @id @default(autoincrement())
+  materiId    Int
+  materi      Materi   @relation(fields: [materiId], references: [id], onDelete: Cascade)
+  timestamp   Int      // In seconds
+  pertanyaan  String   @db.Text
+  pilihan     Json     // [{ text: "...", isCorrect: true/false }]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([materiId])
+}
+
+model MateriVideoProgress {
+  id          Int       @id @default(autoincrement())
+  materiId    Int
+  materi      Materi    @relation(fields: [materiId], references: [id], onDelete: Cascade)
+  mahasiswaId Int
+  mahasiswa   Mahasiswa @relation(fields: [mahasiswaId], references: [id], onDelete: Cascade)
+  completed   Boolean   @default(false)
+  lastTimestamp Int     @default(0)
+  videoDuration Int     @default(0)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([materiId, mahasiswaId])
+}
+
+model MateriAkses {
+  id            Int      @id @default(autoincrement())
+  materiId      Int
+  materi        Materi   @relation(fields: [materiId], references: [id], onDelete: Cascade)
+  mahasiswaId   Int
+  mahasiswa     Mahasiswa @relation(fields: [mahasiswaId], references: [id], onDelete: Cascade)
+  waktuAkses    DateTime @default(now())
+
+  @@unique([materiId, mahasiswaId])
 }
 
 enum StatusTugas {
@@ -487,6 +542,8 @@ model Tugas {
   deskripsi            String?     @db.Text
   gdriveFileIdLampiran String?
   gdriveOwnerUserId    Int?
+  bankTugasId          Int?
+  bankTugas            BankTugas?  @relation(fields: [bankTugasId], references: [id], onDelete: SetNull)
   tanggalBuka          DateTime
   tanggalTutup         DateTime
   status               StatusTugas @default(OPEN)
@@ -517,15 +574,40 @@ model TugasSubmission {
   @@unique([tugasId, mahasiswaId])
 }
 
+model BankTugas {
+  id           Int        @id @default(autoincrement())
+  dosenId      Int
+  dosen        Dosen      @relation(fields: [dosenId], references: [id], onDelete: Cascade)
+  matakuliahId Int
+  matakuliah   MataKuliah @relation(fields: [matakuliahId], references: [id], onDelete: Cascade)
+  judul        String
+  kategori     String?
+  deskripsi    String?    @db.Text
+  fileUrl      String?    @db.Text
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tugasRiil Tugas[]
+}
+
 enum JenisKuis {
   PILIHAN_GANDA
-  ESSAY
+}
+
+enum TipeUjian {
+  KUIS
+  UTS
+  UAS
 }
 
 model Kuis {
   id           Int       @id @default(autoincrement())
-  pertemuanId  Int
-  pertemuan    Pertemuan @relation(fields: [pertemuanId], references: [id], onDelete: Cascade)
+  pertemuanId  Int?
+  pertemuan    Pertemuan? @relation(fields: [pertemuanId], references: [id], onDelete: Cascade)
+  mengajarId   Int?
+  mengajar     Mengajar?  @relation(fields: [mengajarId], references: [id], onDelete: Cascade)
+  tipeUjian    TipeUjian  @default(KUIS)
   judul        String
   jenis        JenisKuis
   deskripsi    String?   @db.Text
@@ -534,6 +616,8 @@ model Kuis {
   waktuSelesai DateTime
   durasiMenit  Int
   modeLockdown Boolean   @default(true)
+  bankKuisId   Int?
+  bankKuis     BankKuis? @relation(fields: [bankKuisId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -543,9 +627,44 @@ model Kuis {
   jawaban  KuisJawaban[]
 }
 
+model BankKuis {
+  id           Int        @id @default(autoincrement())
+  dosenId      Int
+  dosen        Dosen      @relation(fields: [dosenId], references: [id], onDelete: Cascade)
+  matakuliahId Int
+  matakuliah   MataKuliah @relation(fields: [matakuliahId], references: [id], onDelete: Cascade)
+  judul        String
+  tipeUjian    TipeUjian  @default(KUIS)
+  jenis        JenisKuis
+  deskripsi    String?    @db.Text
+  bobotNilai   Float      @default(100)
+  modeLockdown Boolean    @default(true)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  kuisRiil Kuis[]
+  soal     BankKuisSoal[]
+}
+
+model BankKuisSoal {
+  id             Int        @id @default(autoincrement())
+  bankKuisId     Int
+  bankKuis       BankKuis   @relation(fields: [bankKuisId], references: [id], onDelete: Cascade)
+  tipeSoal       TipeSoal
+  pertanyaan     String     @db.Text
+  pilihanJawaban Json?
+  kunciJawaban   String?
+  fileUrl        String?    @db.Text
+  bobotSoal      Float      @default(10)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 enum TipeSoal {
-  PG
-  ESSAY
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
 }
 
 model KuisSoal {
@@ -556,6 +675,7 @@ model KuisSoal {
   pertanyaan     String   @db.Text
   pilihanJawaban Json?
   kunciJawaban   String?
+  fileUrl        String?  @db.Text
   bobotSoal      Float    @default(10)
 
   createdAt DateTime @default(now())

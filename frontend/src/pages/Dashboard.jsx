@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext.jsx';
 import { ROLES } from '../constants/rbac.js';
 import { Card, Spinner } from '../components/ui.jsx';
@@ -56,7 +57,7 @@ export default function Dashboard() {
 
   const filteredJadwal = (data?.jadwals || []).filter(j => {
     // Filter hari
-    if (hasSelectedDate && j.hari !== filterDayName) return false;
+    if (hasSelectedDate && j.hari?.toLowerCase() !== filterDayName.toLowerCase()) return false;
     // Filter pencarian
     if (search) {
       const q = search.toLowerCase();
@@ -71,18 +72,28 @@ export default function Dashboard() {
     if (hasSelectedDate) {
       const start = new Date(a.tanggalMulai).setHours(0,0,0,0);
       const end = new Date(a.tanggalSelesai).setHours(23,59,59,999);
+      const isLongEvent = (end - start) > 14 * 24 * 60 * 60 * 1000; // > 14 days
       const check = filterDate.getTime();
+      
+      if (isLongEvent) {
+        return check === start;
+      }
       return check >= start && check <= end;
     }
     return true;
   });
 
   const hasActivity = (dateObj, dayName) => {
-    const hasJadwal = data?.jadwals?.some(j => j.hari === dayName);
+    const hasJadwal = data?.jadwals?.some(j => j.hari?.toLowerCase() === dayName.toLowerCase());
     const hasAgenda = data?.agendas?.some(a => {
       const start = new Date(a.tanggalMulai).setHours(0,0,0,0);
       const end = new Date(a.tanggalSelesai).setHours(23,59,59,999);
+      const isLongEvent = (end - start) > 14 * 24 * 60 * 60 * 1000;
       const check = dateObj.getTime();
+      
+      if (isLongEvent) {
+        return check === start;
+      }
       return check >= start && check <= end;
     });
     return hasJadwal || hasAgenda;
@@ -95,8 +106,8 @@ export default function Dashboard() {
       <div className="lg:col-span-1 space-y-6">
         
         {/* Widget Jadwal Minggu Ini */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-4 flex items-center justify-between border-b border-slate-100">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-orange-500 overflow-hidden">
+          <div className="p-4 flex items-center justify-between border-b border-orange-100">
             <h2 className="font-bold text-slate-800 text-sm">Jadwal Minggu Ini</h2>
             <span className="text-xs text-slate-500">Hari ini: {formattedDate}</span>
           </div>
@@ -125,7 +136,7 @@ export default function Dashboard() {
                         {d.tanggal}
                       </div>
                       {activityMarker && (
-                        <div className={`absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full ${isActiveDate ? 'bg-white' : 'bg-orange-500'}`}></div>
+                        <div className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white bg-orange-500 shadow-sm z-10"></div>
                       )}
                     </div>
                   </button>
@@ -163,34 +174,87 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Widget Perlu Dikerjakan */}
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-4 flex items-center gap-2 border-b border-slate-100">
-            <h2 className="font-bold text-slate-800 text-sm">Perlu Dikerjakan</h2>
-            <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold">0</span>
+        {['ADMIN', 'ADMIN_AKADEMIK', 'ADMIN_PRODI'].includes(user.role) ? (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-orange-500 overflow-hidden">
+            <div className="p-4 flex items-center justify-between border-b border-orange-100">
+              <h2 className="font-bold text-slate-800 text-sm">Aktivitas Terkini</h2>
+              <span className="text-[10px] uppercase font-bold text-sky-600 bg-sky-50 px-2 py-0.5 rounded-full tracking-wider">Live</span>
+            </div>
+            <div className="p-4 space-y-4">
+              {data?.recentLogs?.length > 0 ? (
+                data.recentLogs.map((log) => (
+                  <div key={log.id} className="flex gap-3 text-sm">
+                    <div className="w-8 h-8 shrink-0 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 font-bold">
+                      {(log.user?.nickname || log.user?.username || 'S')[0].toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="text-slate-800 leading-tight">
+                        <span className="font-semibold">{log.user?.nickname || log.user?.username || 'Sistem'}</span> {log.aktivitas}
+                      </p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        {new Date(log.waktu).toLocaleString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} • {log.modul}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center justify-center py-6 text-center">
+                  <p className="text-xs text-slate-500">Belum ada aktivitas tercatat</p>
+                </div>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col items-center justify-center py-10 text-center px-4">
-             <div className="w-20 h-20 mb-3 opacity-50">
-                <svg className="w-full h-full text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
+        ) : (
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-orange-500 overflow-hidden">
+            <div className="p-4 flex items-center gap-2 border-b border-orange-100">
+              <h2 className="font-bold text-slate-800 text-sm">Perlu Dikerjakan</h2>
+              <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full text-xs font-bold">{data?.tasks?.length || 0}</span>
+            </div>
+            {data?.tasks?.length > 0 ? (
+              <div className="p-4 space-y-3">
+                {data.tasks.map(task => (
+                  <div key={task.id} className="p-3 bg-orange-50 border border-orange-100 rounded-lg">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-full bg-orange-200 text-orange-600 flex items-center justify-center shrink-0">
+                        {task.icon === 'clipboard-list' ? (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        )}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-slate-800">{task.title}</h3>
+                        <p className="text-xs text-slate-600 mt-1 leading-snug">{task.description}</p>
+                        {task.link && (
+                          <Link to={task.link} className="inline-block mt-2 text-xs font-semibold text-orange-600 hover:text-orange-700 hover:underline">
+                            Lihat Detail →
+                          </Link>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
-             <p className="text-xs text-slate-500">Tidak ada yang perlu dikerjakan saat ini</p>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center px-4">
+                 <div className="w-20 h-20 mb-3 opacity-50">
+                    <svg className="w-full h-full text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                  </div>
+                 <p className="text-xs text-slate-500">Tidak ada yang perlu dikerjakan saat ini</p>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
       </div>
 
       {/* KANAN: Konten Utama Kelas */}
       <div className="lg:col-span-3">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden min-h-full flex flex-col">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-orange-500 overflow-hidden min-h-full flex flex-col">
           
           {/* Tabs */}
-          <div className="flex border-b border-slate-200">
-            <button className="flex-1 text-center py-4 font-semibold text-sky-600 border-b-2 border-sky-500 text-sm">
-              Kelas Aktif
-            </button>
-          </div>
 
           <div className="p-6 flex-1 bg-slate-50/30">
             
@@ -206,12 +270,6 @@ export default function Dashboard() {
                     : `Menampilkan jadwal perkuliahan pada semester ${data?.tahunAkademik?.nama || 'berjalan'}`}
                 </p>
               </div>
-              <button className="flex items-center justify-center gap-2 text-sky-600 hover:text-sky-700 font-medium text-sm whitespace-nowrap bg-sky-50 hover:bg-sky-100 px-4 py-2 rounded-lg transition-colors">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Sinkron Kelas
-              </button>
             </div>
 
             {/* Filters */}
@@ -226,7 +284,7 @@ export default function Dashboard() {
                   type="text" 
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-sky-500 sm:text-sm transition-all" 
+                  className="block w-full pl-10 pr-3 py-2.5 border border-slate-300 rounded-xl leading-5 bg-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-orange-500 sm:text-sm transition-all" 
                   placeholder="Cari berdasarkan mata kuliah, kode kelas, atau nama dosen" 
                 />
               </div>
@@ -242,14 +300,22 @@ export default function Dashboard() {
                    Belum ada jadwal kelas yang tersedia.
                  </div>
               ) : filteredJadwal.map((kelas, idx) => (
-                <div key={idx} className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md transition-shadow cursor-pointer group flex flex-col justify-between">
+                <div key={idx} className="bg-white border border-slate-200 rounded-xl p-5 hover:shadow-md transition-shadow flex flex-col justify-between relative">
+                  {kelas.mengajar?.pertemuan?.length > 0 && (
+                    <span className="absolute top-4 right-4 inline-flex items-center gap-1 px-2 py-1 rounded-md bg-orange-100 text-orange-700 text-[10px] font-bold">
+                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Sesi-{kelas.mengajar.pertemuan[0].keBerapa}
+                    </span>
+                  )}
                   <div>
-                    <h3 className="font-bold text-slate-800 text-sm group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug mb-1">
+                    <h3 className="font-bold text-slate-800 text-sm group-hover:text-sky-600 transition-colors line-clamp-2 leading-snug mb-1 pr-16">
                       {kelas.matakuliah?.namaMk} ({kelas.kelas?.namaKelas})
                     </h3>
                     <p className="text-xs text-slate-500 mb-4">Kelas: {kelas.kelas?.namaKelas}</p>
                     
-                    <p className="text-xs text-slate-400 italic mb-3">Pelaksanaan: {kelas.metode || 'OFFLINE'}</p>
+                    <p className="text-xs text-slate-400 italic mb-2">Pelaksanaan: {kelas.metode || 'OFFLINE'}</p>
                   </div>
                   
                   <div className="space-y-2 mt-2">
@@ -263,8 +329,21 @@ export default function Dashboard() {
                       <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                       </svg>
-                      {kelas.hari}, {kelas.jamMulai} - {kelas.jamSelesai} {kelas.ruangan ? `(${kelas.ruangan?.namaRuangan})` : ''}
+                      {kelas.mengajar?.pertemuan?.length > 0 && kelas.mengajar.pertemuan[0].tanggal ? 
+                        `${kelas.hari}, ${new Date(kelas.mengajar.pertemuan[0].tanggal).toLocaleDateString('id-ID', {day: '2-digit', month: 'short', year: 'numeric'})}` : 
+                        kelas.hari}, {kelas.jamMulai} - {kelas.jamSelesai} {kelas.ruangan ? `(${kelas.ruangan?.namaRuangan})` : ''}
                     </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t border-slate-100 flex justify-end">
+                    <Link 
+                      to={`/materi/${kelas.id}${kelas.mengajar?.pertemuan?.length > 0 ? `?sesiId=${kelas.mengajar.pertemuan[0].id}` : ''}`} 
+                      className="px-4 py-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors text-xs font-bold inline-flex items-center gap-2"
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      Mulai Kelas
+                    </Link>
                   </div>
                 </div>
               ))}

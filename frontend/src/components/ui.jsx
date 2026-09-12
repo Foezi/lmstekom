@@ -2,7 +2,7 @@ export function Button({ variant = 'primary', className = '', ...props }) {
   const base =
     'inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed';
   const variants = {
-    primary: 'bg-sky-500 text-white hover:bg-sky-600 shadow-sm',
+    primary: 'bg-orange-500 text-white hover:bg-orange-600 shadow-sm shadow-orange-500/20',
     secondary: 'bg-slate-100 text-slate-700 hover:bg-slate-200',
     danger: 'bg-red-500 text-white hover:bg-red-600 shadow-sm',
     ghost: 'text-slate-600 hover:bg-slate-100',

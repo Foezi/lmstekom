@@ -127,5 +127,98 @@ export const nilaiService = {
         totalPages: Math.ceil(totalMahasiswa / Number(limit))
       }
     };
+  },
+
+  async getRekapPenilaianDosen({ dosenId, matakuliahId, tahunAkademikId }) {
+    const mengajars = await db.mengajar.findMany({
+      where: {
+        dosenId: Number(dosenId),
+        matakuliahId: Number(matakuliahId),
+        tahunAkademikId: Number(tahunAkademikId)
+      },
+      include: {
+        kelas: {
+          include: {
+            mahasiswa: { orderBy: { nama: 'asc' } }
+          }
+        },
+        pertemuan: {
+          where: { status: { in: ['SELESAI', 'TERLAKSANA'] } },
+          include: {
+            presensis: true,
+            tugas: { include: { submissions: true } },
+            kuis: { include: { attempts: true } } // KUIS, UTS, UAS are here
+          },
+          orderBy: { keBerapa: 'asc' }
+        }
+      }
+    });
+
+    if (!mengajars || mengajars.length === 0) return [];
+
+    let rekap = [];
+
+    for (const mengajar of mengajars) {
+      const mahasiswas = mengajar.kelas?.mahasiswa || [];
+      const pertemuans = mengajar.pertemuan || [];
+      const totalPertemuan = pertemuans.length;
+
+      const mhsRekap = mahasiswas.map(m => {
+        let hadirCount = 0;
+        let totalTugasKuisScore = 0;
+        let countTugasKuis = 0;
+
+        let uts = 0;
+        let uas = 0;
+
+        // Hitung kehadiran dan kumpulkan nilai tugas & kuis & ujian
+        pertemuans.forEach(p => {
+          const presensi = p.presensis.find(pr => pr.mahasiswaId === m.id);
+          if (presensi && presensi.status === 'HADIR') hadirCount++;
+
+          p.tugas.forEach(t => {
+            const sub = t.submissions.find(s => s.mahasiswaId === m.id);
+            totalTugasKuisScore += (sub?.nilai ?? 0);
+            countTugasKuis++;
+          });
+          p.kuis.forEach(k => {
+            const att = k.attempts.find(a => a.mahasiswaId === m.id);
+            if (k.tipeUjian === 'UTS') {
+              uts = att?.totalNilai ?? 0;
+            } else if (k.tipeUjian === 'UAS') {
+              uas = att?.totalNilai ?? 0;
+            } else {
+              totalTugasKuisScore += (att?.totalNilai ?? 0);
+              countTugasKuis++;
+            }
+          });
+        });
+
+        const kehadiran = (hadirCount / Math.max(totalPertemuan, 1)) * 100;
+        const tugas = countTugasKuis > 0 ? (totalTugasKuisScore / countTugasKuis) : 0;
+
+        const nilaiAkhir = (kehadiran * 0.10) + (tugas * 0.20) + (uts * 0.30) + (uas * 0.40);
+
+        return {
+          id: m.id,
+          nim: m.nim,
+          nama: m.nama,
+          kelas: mengajar.kelas.namaKelas,
+          kehadiran: Number(kehadiran.toFixed(1)),
+          tugas: Number(tugas.toFixed(1)),
+          uts: Number(uts.toFixed(1)),
+          uas: Number(uas.toFixed(1)),
+          nilaiAkhir: Number(nilaiAkhir.toFixed(1))
+        };
+      });
+
+      rekap.push({
+        mengajarId: mengajar.id,
+        kelas: mengajar.kelas.namaKelas,
+        mahasiswaList: mhsRekap
+      });
+    }
+
+    return rekap;
   }
 };
