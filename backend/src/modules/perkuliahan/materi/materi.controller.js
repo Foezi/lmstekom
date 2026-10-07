@@ -93,6 +93,14 @@ export const getPertemuanList = asyncHandler(async (req, res) => {
     throw ApiError.forbidden('Anda tidak berhak mengakses materi untuk jadwal ini');
   }
 
+  if (req.user.role === 'MAHASISWA') {
+    if (!req.user.mahasiswaId) throw ApiError.forbidden('Profil mahasiswa tidak valid');
+    const mhs = await db.mahasiswa.findUnique({ where: { id: req.user.mahasiswaId } });
+    if (!mhs || mhs.kelasId !== jadwal.kelasId) {
+      throw ApiError.forbidden('Anda tidak tergabung dalam kelas ini');
+    }
+  }
+
   let mengajar = await db.mengajar.findUnique({
     where: { jadwalId },
     include: {

@@ -14,7 +14,7 @@ const router = Router();
 const ACCESS_ROLES = ['ADMIN', 'ADMIN_AKADEMIK', 'ADMIN_PRODI', 'DOSEN'];
 
 router.get('/', requireRole(...ACCESS_ROLES), controller.listJadwalMateri);
-router.get('/:jadwalId/pertemuan', requireRole(...ACCESS_ROLES), controller.getPertemuanList);
+router.get('/:jadwalId/pertemuan', requireRole(...ACCESS_ROLES, 'MAHASISWA'), controller.getPertemuanList);
 router.post('/:jadwalId/pertemuan/generate', requireRole(...ACCESS_ROLES), controller.generatePertemuan);
 router.post('/:jadwalId/pertemuan/sync', requireRole(...ACCESS_ROLES), controller.syncPertemuanAPI);
 router.put('/:jadwalId/deskripsi', requireRole(...ACCESS_ROLES), controller.updateDeskripsi);

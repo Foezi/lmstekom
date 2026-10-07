@@ -8,7 +8,7 @@ for (const key of required) {
 }
 
 export const env = {
-  port: parseInt(process.env.PORT || '3000', 10),
+  port: process.env.PORT || 3000,
   databaseUrl: process.env.DATABASE_URL,
   jwtSecret: process.env.JWT_SECRET,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '12h',

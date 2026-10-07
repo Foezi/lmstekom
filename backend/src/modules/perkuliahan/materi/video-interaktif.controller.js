@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import { db } from '../../../core/database.js';
 import { ApiError } from '../../../shared/utils/apiError.js';
-
-const db = new PrismaClient();
 
 export async function getQuestions(req, res) {
   const materiId = parseInt(req.params.materiId, 10);

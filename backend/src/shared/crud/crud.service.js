@@ -172,6 +172,7 @@ export function createCrudService(config) {
     const seenKeys = new Map();
 
     const validRows = [];
+    const validOriginals = [];
     const errors = [];
 
     rawRows.forEach((raw, idx) => {
@@ -240,7 +241,10 @@ export function createCrudService(config) {
       }
 
       config.validateRow?.(data, fail);
-      if (rowValid) validRows.push(data);
+      if (rowValid) {
+        validRows.push(data);
+        validOriginals.push(raw);
+      }
     });
 
     const batchId = saveBatch({ userId: user.id, entity: config.model, rows: validRows, errors });
@@ -251,7 +255,7 @@ export function createCrudService(config) {
       jumlahValid: validRows.length,
       jumlahError: errors.length,
       errors,
-      preview: validRows.slice(0, 10),
+      preview: validOriginals,
     };
   }
 

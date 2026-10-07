@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { ApiError } from '../../../shared/utils/apiError.js';
 import { ADMIN_TRIO, ADMIN_DUO, hashDefault, exp, mergeCaches } from '../../../shared/crud/crud.utils.js';
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const mahasiswaSchema = z.object({
   nim: z.string().min(4).max(20),
   nama: z.string().min(3).max(120),

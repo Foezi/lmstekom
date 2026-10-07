@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 export const ADMIN_TRIO = ['ADMIN', 'ADMIN_AKADEMIK', 'ADMIN_PRODI'];
 export const ADMIN_DUO = ['ADMIN', 'ADMIN_AKADEMIK'];
 export const hashDefault = async (username) => bcrypt.hash(username + '@poltek', 10);
