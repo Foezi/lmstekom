@@ -10,7 +10,7 @@ export const USER_KEY = 'lms_user';
 export const getStoredToken = () => localStorage.getItem(TOKEN_KEY);
 
 export const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://lms-api.polteksmi.ac.id/api',
   headers: { 'Content-Type': 'application/json' },
 });
 

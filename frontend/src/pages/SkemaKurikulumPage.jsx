@@ -24,8 +24,10 @@ export function SkemaKurikulumPage() {
         if (kelasData && kelasData.prodiId && kelasData.tahunKurikulumId) {
           const res = await masterApi('mata-kuliah').list({ 
             limit: 200, 
-            prodiId: kelasData.prodiId, 
-            tahunKurikulumId: kelasData.tahunKurikulumId 
+            filters: {
+              prodiId: kelasData.prodiId, 
+              tahunKurikulumId: kelasData.tahunKurikulumId 
+            }
           });
           if (!alive) return;
           setMataKuliah(res.rows || []);

@@ -69,8 +69,7 @@ export const MASTER_UI = {
     columns: [
       { key: 'nim', label: 'NIM' },
       { key: 'nama', label: 'Nama' },
-      { key: 'kelasNama', label: 'Kelas' },
-      { key: 'prodiKode', label: 'Prodi' },
+      { key: 'email', label: 'Email', render: (r) => r.email || '-' },
       { key: 'status', label: 'Status', render: badgeRender },
     ],
     fields: [

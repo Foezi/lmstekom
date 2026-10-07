@@ -69,6 +69,8 @@ export function MasterDataPage({ entity }) {
   const [filters, setFilters] = useState(initialFilters);
   const [prodis, setProdis] = useState([]);
   const [tahunAkademiks, setTahunAkademiks] = useState([]);
+  const [kurikulums, setKurikulums] = useState([]);
+  const [kelasList, setKelasList] = useState([]);
   const [resettingPassword, setResettingPassword] = useState(null);
 
   useEffect(() => {
@@ -76,8 +78,14 @@ export function MasterDataPage({ entity }) {
     if (['mata-kuliah', 'mahasiswa', 'kelas', 'jadwal'].includes(entity)) {
       masterApi('prodi').list({ limit: 1000 }).then(res => setProdis(res.rows || [])).catch(err => console.error("Gagal load prodi:", err));
     }
+    if (['mata-kuliah', 'kelas'].includes(entity)) {
+      masterApi('kurikulum').list({ limit: 1000 }).then(res => setKurikulums(res.rows || [])).catch(err => console.error("Gagal load kurikulum:", err));
+    }
     if (['jadwal', 'kalender-akademik'].includes(entity)) {
       masterApi('tahun-akademik').list({ limit: 1000 }).then(res => setTahunAkademiks(res.rows || [])).catch(err => console.error("Gagal load TA:", err));
+    }
+    if (['mahasiswa'].includes(entity)) {
+      masterApi('kelas').list({ limit: 1000 }).then(res => setKelasList(res.rows || [])).catch(err => console.error("Gagal load kelas:", err));
     }
   }, [entity]);
 
@@ -160,51 +168,93 @@ export function MasterDataPage({ entity }) {
         refreshKey={refreshKey}
         filters={filters}
         leftToolbar={
-          <div className="flex flex-col sm:flex-row gap-2 max-w-full">
-            {['mata-kuliah', 'mahasiswa', 'kelas'].includes(entity) && (
-              <Select
-                value={filters.prodiId || ''}
-                onChange={(e) => setFilters(f => ({ ...f, prodiId: e.target.value }))}
-                options={[{value:'', label:'Semua Prodi'}, ...prodis.map(p => ({ value: p.id, label: p.namaProdi }))]}
-                className="w-full sm:w-48 !py-2"
-              />
-            )}
-            {entity === 'mahasiswa' && (
-              <Select
-                value={filters.status || ''}
-                onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))}
-                className="w-full sm:w-40 !py-2"
-                options={[
-                  { value: '', label: 'Semua Status' },
-                  { value: 'AKTIF', label: 'Aktif' },
-                  { value: 'NONAKTIF', label: 'Nonaktif' },
-                  { value: 'LULUS', label: 'Lulus' },
-                  { value: 'DO', label: 'DO' },
-                  { value: 'MENGUNDURKAN_DIRI', label: 'Mengundurkan Diri' },
-                  { value: 'CUTI', label: 'Cuti' },
-                ]}
-              />
-            )}
-            {['jadwal', 'kalender-akademik'].includes(entity) && (
-              <Select
-                value={filters.tahunAkademikId || ''}
-                onChange={(e) => setFilters(f => ({ ...f, tahunAkademikId: e.target.value }))}
-                options={[{value:'', label:'Semua Tahun Akademik'}, ...tahunAkademiks.map(t => ({ value: t.id, label: t.nama }))]}
-                className="w-full sm:w-64 !py-2"
-              />
-            )}
-          </div>
+          entity === 'kelas' ? null : (
+            <div className="flex flex-wrap gap-3 w-full">
+              {['mata-kuliah', 'mahasiswa'].includes(entity) && (
+                <Select
+                  placeholder="Pilih Prodi"
+                  value={filters.prodiId || ''}
+                  onChange={(e) => setFilters(f => ({ ...f, prodiId: e.target.value }))}
+                  options={prodis.map(p => ({ value: p.id, label: p.namaProdi }))}
+                  className="w-full sm:w-48 !py-2"
+                />
+              )}
+              {entity === 'mata-kuliah' && (
+                <>
+                  <Select
+                    placeholder="Pilih Kurikulum"
+                    value={filters.tahunKurikulumId || ''}
+                    onChange={(e) => setFilters(f => ({ ...f, tahunKurikulumId: e.target.value }))}
+                    options={kurikulums.map(k => ({ value: k.id, label: `Kurikulum ${k.tahun}` }))}
+                    className="w-full sm:w-48 !py-2"
+                  />
+                  <Select
+                    placeholder="Pilih Semester"
+                    value={filters.semester || ''}
+                    onChange={(e) => setFilters(f => ({ ...f, semester: e.target.value }))}
+                    options={Array.from({ length: 8 }, (_, i) => ({ value: i + 1, label: `Semester ${i + 1}` }))}
+                    className="w-full sm:w-48 !py-2"
+                  />
+                </>
+              )}
+              {entity === 'mahasiswa' && (
+                <>
+                  <Select
+                    placeholder="Pilih Kelas"
+                    value={filters.kelasId || ''}
+                    onChange={(e) => setFilters(f => ({ ...f, kelasId: e.target.value }))}
+                    className="w-full sm:w-48 !py-2"
+                    options={kelasList.map(k => ({ value: k.id, label: k.namaKelas }))}
+                  />
+                  <Select
+                    placeholder="Pilih Status"
+                    value={filters.status || ''}
+                    onChange={(e) => setFilters(f => ({ ...f, status: e.target.value }))}
+                    className="w-full sm:w-40 !py-2"
+                    options={[
+                      { value: 'AKTIF', label: 'Aktif' },
+                      { value: 'NONAKTIF', label: 'Nonaktif' },
+                      { value: 'LULUS', label: 'Lulus' },
+                      { value: 'DO', label: 'DO' },
+                      { value: 'MENGUNDURKAN_DIRI', label: 'Mengundurkan Diri' },
+                      { value: 'CUTI', label: 'Cuti' },
+                    ]}
+                  />
+                </>
+              )}
+              {['jadwal', 'kalender-akademik'].includes(entity) && (
+                <Select
+                  placeholder="Pilih Tahun Akademik"
+                  value={filters.tahunAkademikId || ''}
+                  onChange={(e) => setFilters(f => ({ ...f, tahunAkademikId: e.target.value }))}
+                  options={tahunAkademiks.map(t => ({ value: t.id, label: t.nama }))}
+                  className="w-full sm:w-64 !py-2"
+                />
+              )}
+            </div>
+          )
         }
         toolbar={
-          <>
+          <div className="flex flex-wrap items-center gap-2">
+            {entity === 'kelas' && (
+              <Select
+                placeholder="Pilih Prodi"
+                value={filters.prodiId || ''}
+                onChange={(e) => setFilters(f => ({ ...f, prodiId: e.target.value }))}
+                options={prodis.map(p => ({ value: p.id, label: p.namaProdi }))}
+                className="w-full sm:w-48"
+              />
+            )}
             {canWrite && (
               <Button onClick={() => { setEditing(null); setFormOpen(true); }}>+ Tambah</Button>
             )}
-            {canImport && <Button variant="secondary" onClick={() => setImportOpen(true)}>⬆ Import</Button>}
-            <Button variant="secondary" onClick={() => api.exportExcel({ page: 1, limit: 10000, filters }).then((res) => saveBlob(res, `export-${entity}-${Date.now()}.xlsx`))}>
-              ⬇ Export
-            </Button>
-          </>
+            {canImport && entity !== 'kelas' && <Button variant="secondary" onClick={() => setImportOpen(true)}>⬆ Import</Button>}
+            {entity !== 'kelas' && (
+              <Button variant="secondary" onClick={() => api.exportExcel({ page: 1, limit: 10000, filters }).then((res) => saveBlob(res, `export-${entity}-${Date.now()}.xlsx`))}>
+                ⬇ Export
+              </Button>
+            )}
+          </div>
         }
       />
 

@@ -89,16 +89,22 @@ export function ImportWizard({ open, onClose, master, onImported }) {
       {step === 0 && (
         <div className="space-y-3 text-sm text-slate-600">
           <p>Unduh template resmi, isi datanya, lalu unggah kembali. Sistem akan memvalidasi sebelum menyimpan.</p>
-          <Button
-            onClick={() =>
-              master
-                .downloadTemplate()
-                .then((res) => saveBlob(res, `template-import-${master.entity}.xlsx`))
-                .catch(() => setError('Gagal mengunduh template'))
-            }
-          >
-            ⬇ Unduh Template (.xlsx)
-          </Button>
+          <div className="flex justify-between pt-4">
+            <Button
+              variant="secondary"
+              onClick={() =>
+                master
+                  .downloadTemplate()
+                  .then((res) => saveBlob(res, `template-import-${master.entity}.xlsx`))
+                  .catch(() => setError('Gagal mengunduh template'))
+              }
+            >
+              ⬇ Unduh Template (.xlsx)
+            </Button>
+            <Button onClick={() => setStep(1)}>
+              Selanjutnya ›
+            </Button>
+          </div>
         </div>
       )}
 
@@ -154,9 +160,9 @@ export function ImportWizard({ open, onClose, master, onImported }) {
           )}
 
           {preview.preview.length > 0 && (
-            <div className="overflow-x-auto rounded-lg border border-slate-200">
-              <table className="min-w-full text-left text-xs">
-                <thead className="bg-slate-50 uppercase tracking-wide text-slate-500">
+            <div className="overflow-auto max-h-96 rounded-lg border border-slate-200">
+              <table className="min-w-full text-left text-xs relative">
+                <thead className="bg-slate-50 uppercase tracking-wide text-slate-500 sticky top-0 shadow-sm">
                   <tr>
                     {Object.keys(preview.preview[0]).map((k) => (
                       <th key={k} className="px-2 py-2">
